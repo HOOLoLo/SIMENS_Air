@@ -1,0 +1,208 @@
+//
+// Created by zgd on 18-4-20.
+//
+
+#include "send_commend.h"
+#include <vector>
+#include "Serial_RT.h"
+#include <iostream>
+using namespace std;
+//èµ·é£è¿çšæä»€ïŒé¡ºåºæ§è¡ã
+char switch_hover[5]={'\xFF','\x02','\x04','\xE7','\x05'};//åæ¢å°æ¬åæš¡åŒ
+//char switch_hover[5]={'0xFF','0x02','0x04','0xE7','0x05'};//åæ¢å°æ¬åæš¡åŒ
+char unlock_Throttl[5]={'\xFF','\x02','\x02','\x57','\x04'};//è§£éæ²¹éš
+char unlock_Yaw[5]={'\xFF','\x02','\x03','\x82','\x07'};//è§£éæ¹å
+char recover_Yaw[5]={'\xFF','\x02','\x03','\xD0','\x05'};//è§£éåæ¹åïŒYawïŒåå°äž­éŽåŒ(äžç¥éå¥ææïŒå°±æ¯è§£éåè°æŽäžäžæ¹åå§)
+char push_Throttl[5]={'\xFF','\x02','\x02','\xD0','\x06'};//èµ·é£çæ¶åæè±å°å¿åŒåéèŠäžäžªé¢å€çå éåºŠå,æä»¥æšæ²¹éš
+char Throttl[5]={'\xFF','\x02','\x02','\xFD','\x05'};//èµ·é£çæ²¹éšæä»€,æ³šæè¿æ¡æä»€åšæšæ²¹éšä¹åå»¶è¿500msåéãæ²¹éšåå°äž­éŽåŒäŒæ¬å
+
+//é£è¡æä»€
+char go_forward[5]={'\xFF','\x02','\x01','\x78','\x05'};//é£è¡åè¿æä»€
+char stop_forward[5]={'\xFF','\x02','\x01','\xFD','\x05'};//åæ­¢åè¿
+char go_back[5]={'\xFF','\x02','\x01','\x4B','\x06'};//åé
+char stop_back[5]={'\xFF','\x02','\x01','\xFD','\x05'};//åæ­¢åé
+char go_left[5]={'\xFF','\x02','\x00','\x38','\x05'};//å·Šç§»
+char stop_left[5]={'\xFF','\x02','\x00','\xD0','\x05'};//åæ­¢å·Šç§»
+char go_right[5]={'\xFF','\x02','\x00','\x8B','\x06'};//å³ç§»
+char stop_right[5]={'\xFF','\x02','\x00','\xD0','\x05'};//åæ­¢å³ç§»
+char turn_left[5]={'\xFF','\x02','\x03','\xA4','\x05'};//å·Šèœ¬
+char stop_rotation[5]={'\xFF','\x02','\x03','\xD0','\x05'};//åæ­¢æèœ¬
+char turn_right[5]={'\xFF','\x02','\x03','\x13','\x06'};//å³èœ¬
+char hover[5]={'\xFF','\x02','\x02','\xFD','\x05'};//åœåé«åºŠæ¬å
+char go_up[5]={'\xFF','\x02','\x02','\xD0','\x06'};//äžå
+char go_down[5]={'\xFF','\x02','\x02','\x4A','\x07'};//äžé
+char self_check[5]={'\xFF','\x02','\x04','\x57','\x04'};//自稳模式
+//éèœ
+char land[5]={'\xFF','\x02','\x04','\xBA','\x06'};//éèœ,æ³šæéèœç»æåäžåéèŠåéåæ¢æ¬åæš¡åŒã
+
+void take_off(){
+    uart_write(command_serial_fd,self_check,5);
+	usleep(1000*5000);
+   	uart_write(command_serial_fd,switch_hover,5);//åæ¢å°æ¬åæš¡åŒ
+    usleep(1000*100);
+	uart_write(command_serial_fd,switch_hover,5);//åæ¢å°æ¬åæš¡åŒ
+    usleep(1000*100);
+    uart_write(command_serial_fd,stop_forward,5);
+    usleep(1000*100);
+    uart_write(command_serial_fd,stop_left,5);	
+    usleep(1000*100);
+    uart_write(command_serial_fd,unlock_Throttl,5);//è§£éæ²¹éš
+    uart_write(command_serial_fd,unlock_Yaw,5);//è§£éæ¹å
+    usleep(1000*5000);
+    uart_write(command_serial_fd,recover_Yaw,5);//æ¹ååæ­£
+    usleep(1000*1000);
+    uart_write(command_serial_fd,push_Throttl,5);//æšæ²¹éš
+    usleep(1000*2500);
+    uart_write(command_serial_fd,Throttl,5);
+}
+
+void send_stop_front(){
+	uart_write(command_serial_fd,stop_forward,5);
+}
+
+
+void send_go_forward(){
+    uart_write(command_serial_fd,go_forward,5);
+	sleep(15);
+	uart_write(command_serial_fd,stop_forward,5);
+}
+
+void send_go_back(){
+	uart_write(command_serial_fd,go_back,5);
+	sleep(15);
+	uart_write(command_serial_fd,stop_back,5);
+
+}
+//è§åºŠä¿æåœæ°
+void theta_hold(double theta) {
+
+     uart_write(command_serial_fd,stop_rotation,5);
+//	cout<<"theta="<<theta<<endl;
+    double deviation=(theta-90);//è§åºŠåå·®ïŒ90åºŠäžºæ­£ç¡®çè§åºŠïŒæ äººæºå·Šèœ¬è§åºŠåå€§ïŒå³èœ¬è§åºŠåå°
+    
+    if(abs(deviation)>=30){
+	cout<<deviation<<endl;
+	uart_write(command_serial_fd,land,5);
+	}
+
+    else if(deviation>0) {
+        uart_write(command_serial_fd, turn_left, 5);
+
+	usleep(1000*50);
+     uart_write(command_serial_fd,stop_rotation,5);
+//	cout<<"theta="<<theta<<endl;
+    }
+    else if(deviation<0){
+        uart_write(command_serial_fd,turn_right,5);
+
+     usleep(1000*50);
+     uart_write(command_serial_fd,stop_rotation,5);
+//	cout<<"theta="<<theta<<endl;
+    }
+
+}
+
+//åééèœåœä»€
+void send_land(){
+    uart_write(command_serial_fd,land,5);
+    sleep(60);
+    uart_write(command_serial_fd,switch_hover,5);//éèœååæ­¢äžåéååæ¢æ¬åæš¡åŒã
+
+}
+void send_go_left(){
+	uart_write(command_serial_fd,go_left,5);
+}
+void send_go_right(){
+	uart_write(command_serial_fd,go_right,5);
+}
+
+void send_stop_cross(){
+	uart_write(command_serial_fd,stop_left,5);
+}
+
+
+/*int generate_command(int dst_x,int dst_y,int cur_X,int cur_Y){
+    //åå€æ­æ¯åŠå°èŸŸç®çå
+	cout<<"dst_x="<<dst_x<<"dst_y"<<dst_y<<endl;
+    if(abs(cur_X-dst_x)<=30&&abs(cur_Y-dst_y<=30)){
+        uart_write(command_serial_fd,stop_forward,5);
+        uart_write(command_serial_fd,stop_back,5);
+        uart_write(command_serial_fd,stop_left,5);
+        uart_write(command_serial_fd,stop_right,5);
+        //åé¢èŠåé åŸååŸ®è°çæä»€
+        sleep(3);
+        return 1;//è¿åå°èŸŸ
+    }
+    else{
+	//cout<<"dst_x="<<dst_x<<endl;
+        if((cur_X-dst_x)<0){
+            //åååçåœä»€
+		
+            uart_write(command_serial_fd,go_forward,5);
+	//	cout<<"forward success"<<endl;
+        }
+        else{
+            //åååçåœä»€
+            uart_write(command_serial_fd,go_back,5);
+        }
+        if((cur_Y-dst_y)<0){
+            //ååå³åœä»€
+            uart_write(command_serial_fd,go_right,5);
+        }
+        else{
+            //åæ³å·Šåœä»€
+            uart_write(command_serial_fd,go_left,5);
+        }
+    }
+    return 0;
+}*/
+
+int generate_command(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y){
+    //先判断是否到达目的�
+	//cout<<"dst_x="<<dst_x<<"dst_y"<<dst_y<<endl;
+
+    if(dst_x==str_x){//y方向飞行
+        if(abs(cur_Y-dst_y)<=30){
+            return 1;
+        }
+        else{
+            if (cur_Y-dst_y>0){
+                uart_write(command_serial_fd,go_left,5);
+                
+            }
+            else if(cur_Y-dst_y<0){
+                uart_write(command_serial_fd,go_right,5);
+            }
+        }
+    }
+    else if(dst_y==str_y){//x方向飞行
+        if(abs(cur_X-dst_x)<=30){
+            return 1;
+        }
+        else{
+            if (cur_X-dst_x>0){
+                uart_write(command_serial_fd,go_back,5);
+
+            }
+            else if(cur_X-dst_x<0){
+                uart_write(command_serial_fd,go_forward,5);
+            }
+        }
+    }
+return 0;
+}
+
+void send_hover() {
+	    uart_write(command_serial_fd,stop_forward,5);	
+	    uart_write(command_serial_fd,stop_back,5);
+	    uart_write(command_serial_fd,stop_left,5);
+   	    uart_write(command_serial_fd,stop_right,5);
+            }
+void calculate(int dev){
+	int max=0x064B;
+	int min=0x0578;
+	int result; 
+	result=max-min;
+		
+	
+}

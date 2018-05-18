@@ -1,0 +1,3 @@
+/home/zgd/Desktop/SIMENS4.0/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/zgd/Desktop/SIMENS4.0/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/zgd/Desktop/SIMENS4.0/cmake-build-debug/CMakeFiles/ciotfly.dir
