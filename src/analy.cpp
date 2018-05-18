@@ -7,7 +7,7 @@
 #include "analy.h"
 #include <iostream>
 char pt_ip[20]={'\0','\0'} ;
-//int pt_port=0 ;
+int pt_port=0 ;
 void *location_lib=NULL ;
 int (*get_position)(float(*inputA)[4], float(*outputA), int n, int c)=NULL;
 
