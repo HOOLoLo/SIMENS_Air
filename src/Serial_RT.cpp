@@ -371,7 +371,7 @@ int uart_write(int fd,const char *w_buf,size_t len)
     if(nCount<0){
         return -1 ;
     }
-    usleep(6000);
+   // usleep(6000);
     //}
     return 1 ;
 //    ssize_t cnt = 0;

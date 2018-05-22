@@ -51,5 +51,5 @@ void send_hover();
 void send_stop_cross();
 void send_stop_front();
 
-
+void send_stop_rotation();
 #endif //CIOTFLY_SEND_COMMEND_H

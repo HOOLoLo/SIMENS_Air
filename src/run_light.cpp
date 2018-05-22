@@ -164,7 +164,7 @@ void *run_light(void *arg) {
 		}
 		pthread_mutex_unlock(&mutex_light_thread);
 
-		double t = (double)getTickCount();
+		//double t = (double)getTickCount();
 		while (!cap.read(frame)){
 			cap.read(frame);
 		//	cout<<"reading camera...."<<endl;
@@ -264,14 +264,16 @@ void *run_light(void *arg) {
 	}
 		
 		//如果两个theta有一个不为0
+        double t = (double)getTickCount();
 		if (theta1 != err || theta2 != err) {
-
 			//colortag=1是蓝色2是红色在读的时候先锁住
 			chec_num++;
 			pthread_mutex_lock(&mutex_colortag);
+			pthread_mutex_lock(&mutex_theta);
+
 			if (colortag == 1 && theta1 != err&&!(core.x>dst.cols)) {
 				if (theta1 > 5 && theta1 < 175) {
-					theta_hold(theta1);
+					theta=theta1;
 					//cout<<"theta hold"<<endl;
 				}
 			/*if(chec_num>0){		
@@ -303,8 +305,8 @@ void *run_light(void *arg) {
 //colortag=2是红色
 			else if (colortag == 2 && theta2 != err && !(core2.x>dst.rows)) {
 				if (theta2 > 5 && theta2 < 175) {
-					theta_hold(theta2);
-                                }
+					theta=theta2;
+					}
 			/*if(chec_num>0){
 				if(core2.x>240&&core2.x<480){
 					send_go_back();
@@ -328,10 +330,10 @@ void *run_light(void *arg) {
 			}
 			else if(colortag==3 && theta1!=err && theta2!=err){
 				if (theta1 > 5 && theta1 < 175) {
-					theta_hold(theta1);
+					theta=theta1;
 				}
 				else if (theta2 > 5 && theta2 < 175) {
-					theta_hold(theta2);
+					theta=theta2;
 				}
 
 					
@@ -372,17 +374,17 @@ void *run_light(void *arg) {
 			
 			else if(colortag==0){//xuanting
 				send_hover();
-			}	
+			}
 			pthread_mutex_unlock(&mutex_colortag);
+			pthread_mutex_unlock(&mutex_theta);
+            t = ((double)getTickCount() - t) / getTickFrequency();
 		}
-
 		else {
-
 			uart_write(command_serial_fd,stop_rotation,5);
 
 		}
 
-
+           // double t = (double)getTickCount();
 			pthread_mutex_lock(&mutex_pix);
 			//判断core的x和y是否超过了像素值，没有则正常
 			if(!(core.x>dst.cols)&&!(core2.x>dst.rows)) {
@@ -393,8 +395,8 @@ void *run_light(void *arg) {
 
 		//    cout << colortag << endl;
 
-		t = ((double)getTickCount() - t) / getTickFrequency();
-	//	cout << "times passed in seconds: " << t << endl;
+
+		cout << "light_times passed in seconds: " << t << endl;
 	/*	//	if(iRecv<0){
 		//	perror("recvfrom");
 		//	}

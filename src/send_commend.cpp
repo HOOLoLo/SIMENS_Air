@@ -55,7 +55,7 @@ void take_off(){
     uart_write(command_serial_fd,recover_Yaw,5);//????????????
     usleep(1000*1000);
     uart_write(command_serial_fd,push_Throttl,5);//??????é??
-    usleep(1000*1000);
+    usleep(1000*1250);
     uart_write(command_serial_fd,Throttl,5);
 }
 
@@ -79,7 +79,7 @@ void send_go_back(){
 //è§???????????????°
 void theta_hold(double theta) {
 
-     uart_write(command_serial_fd,stop_rotation,5);
+    // uart_write(command_serial_fd,stop_rotation,5);
 //	cout<<"theta="<<theta<<endl;
     double deviation=(theta-90);//è§????????·????90???????????????è§?????????????????·?è??è§????????€§??????è??è§????????°?
     
@@ -88,22 +88,32 @@ void theta_hold(double theta) {
 	uart_write(command_serial_fd,land,5);
 	}
 
-    else if(deviation>0) {
+    else if(deviation>3) {
         uart_write(command_serial_fd, turn_left, 5);
 
-	usleep(1000*50);
+	usleep(1000*20);
      uart_write(command_serial_fd,stop_rotation,5);
 //	cout<<"theta="<<theta<<endl;
     }
-    else if(deviation<0){
+    else if(deviation<-3){
         uart_write(command_serial_fd,turn_right,5);
 
-     usleep(1000*50);
+     usleep(1000*20);
      uart_write(command_serial_fd,stop_rotation,5);
 //	cout<<"theta="<<theta<<endl;
     }
+        uart_write(command_serial_fd, stop_rotation, 5);
+        usleep(1000*20);
+
 
 }
+
+
+
+void send_stop_rotation() {
+    uart_write(command_serial_fd,stop_rotation,5);
+}
+
 //???é??é??è???????€
 void send_land(){
     uart_write(command_serial_fd,land,5);
@@ -115,28 +125,28 @@ void send_go_left(){
     short speed=0x05AA;
     go_left[3] = (speed & 0x00ff);
     go_left[4] = ((speed & 0xff00) >> 8);
-    for(int i=0;i<5;i++){
-        cout<<hex<<(go_left[i]&0xFF)<<endl;
-    }
+//    for(int i=0;i<5;i++){
+//        cout<<hex<<(go_left[i]&0xFF)<<endl;
+//    }
     // cout<<"time1="<<time1<<endl;
     uart_write(command_serial_fd, go_left, 5);
-    usleep(1000*10);
+    usleep(1000*13);
     uart_write(command_serial_fd,stop_cross,5);
-    usleep(1000*5);
-
+    usleep(1000*10);
 }
+
 void send_go_right(){
     short speed=0x062C;
     go_right[3] = (speed & 0x00ff);
     go_right[4] = ((speed & 0xff00) >> 8);
-    for(int i=0;i<5;i++){
-        cout<<hex<<(go_right[i]&0xFF)<<endl;
-    }
+//    for(int i=0;i<5;i++){
+//        cout<<hex<<(go_right[i]&0xFF)<<endl;
+//    }
     // cout<<"time1="<<time1<<endl;
     uart_write(command_serial_fd, go_right, 5);
-    usleep(1000*10);
+    usleep(1000*13);
     uart_write(command_serial_fd,stop_cross,5);
-    usleep(1000*5);
+    usleep(1000*10);
 }
 
 void send_stop_cross(){
