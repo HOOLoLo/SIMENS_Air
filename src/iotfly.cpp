@@ -81,6 +81,7 @@ pthread_mutex_t mutex_send = PTHREAD_MUTEX_INITIALIZER;//
 pthread_mutex_t mutex_pix = PTHREAD_MUTEX_INITIALIZER ;//pix_x,pix_y和pix_buf的互斥量
 pthread_mutex_t mutex_colortag=PTHREAD_MUTEX_INITIALIZER;//蓝红灯光的互斥量，因为航向角只能用一个颜色的
 pthread_mutex_t mutex_light_thread=PTHREAD_MUTEX_INITIALIZER;//图像线程互斥量
+pthread_mutex_t mutex_theta=PTHREAD_MUTEX_INITIALIZER;
 
 //char send_buf[100]={0} ;//给无人机发送的数组
 //int send_len=0 ;
@@ -98,6 +99,7 @@ int pix_y = 0 ;//图像y坐标
 int X;//飞机实际X坐标
 int Y;//飞机实际Y坐标
 
+double theta=404;
 
 int start=0;//起点
 int dst=1;//终点
@@ -109,6 +111,7 @@ pthread_t run_light_id;//图像处理 id
 //pthread_t command_thread_id;
 
 pthread_t adjust_thread_id;//微调线程id
+pthread_t adjust_theta_id;//微调角度线程id
 int main(void){
 	cout<<"123"<<endl;	
 //char *com = "/dev/ttyUSB0" ;
@@ -118,6 +121,8 @@ int main(void){
 	pthread_mutex_init(&mutex_serial,NULL);
 	pthread_mutex_init(&mutex_pix,NULL);
     pthread_mutex_init(&mutex_colortag,NULL);
+    pthread_mutex_init(&mutex_theta,NULL);
+
 
 	char mac[20] ;
 	read_file_info();//读取基站的基本数据
@@ -174,5 +179,6 @@ int main(void){
 	pthread_mutex_destroy(&mutex_pix) ;
 	pthread_mutex_destroy(&mutex_colortag);
     pthread_mutex_destroy(&mutex_light_thread);
+    pthread_mutex_destroy(&mutex_theta);
 	return EXIT_SUCCESS;
 }
