@@ -32,7 +32,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
     char rcv_buf[200] ;
     char mac[80] ;//基站mac地址
     int check_num=0;//记录定位数据次数(加在一开始)
-
+    int turn_check_num=0;
 
     while(open_serial(com)==-1){//打开uwb串口
         sleep(10) ;
@@ -54,7 +54,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
             cout<<"generate route success"<<endl;
 	        cout<<"route_size="<<route.size()<<endl;
             list<int>::iterator it = route.begin();//iteratoræåè·¯åŸç¬¬äžäžªåçŽ 
-         //   take_off();
+            take_off();
 
        sleep(10);
 
@@ -74,23 +74,24 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
             colortag=G[str][nstr].color;
             pthread_mutex_unlock(&mutex_colortag);
             it--;//把it减回来
-
+            cout<<" try to lock light"<<endl;
 
             pthread_mutex_lock(&mutex_light_thread);
             light_thread=true;
             pthread_mutex_unlock(&mutex_light_thread);
-
+            cout<<"change light success"<<endl;
             pthread_create(&run_light_id,NULL,run_light,NULL);//起飞结束后启动图像调整线程
-       	    pthread_create(&adjust_theta_id,NULL,adjustment_theta,NULL);
+       	    cout<<"create light_thread success"<<endl;
+            pthread_create(&adjust_theta_id,NULL,adjustment_theta,NULL);
 
 	    sleep(10);
 	    
 	    pthread_create(&adjust_thread_id,NULL,adjustment,NULL);//调整线程
-	  //  sleep(25);
+	    sleep(25);
 	    //time_tag=1;
-//	 send_go_forward();
+	 //send_go_forward();
 //	send_go_back();
-	//sleep(60);
+//	sleep(60);
 //	send_land();
 
             while (it != (--route.end())) {//只要当前it不是最后一个节点就循环
@@ -190,36 +191,39 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                     check_num++;//检测到一次到达点就check_num+1;
 
                                 }
-			        else{
+			                 else{
                                     check_num=0;
-			            cout<<"current="<<current_node<<endl;
-			            cout<<"next="<<next_node<<endl;
-					            }
+			                        cout<<"current="<<current_node<<endl;
+			                        cout<<"next="<<next_node<<endl;
+                                }
                              if(check_num>=3){
                                     next_path=true;
                                     send_hover();//坐标判断到达中心点,悬停
-				    	            sleep(5);//停止五秒后开始调转弯点
-				                    pthread_mutex_lock(&mutex_colortag);
-                		            colortag=3;
-                		            pthread_mutex_unlock(&mutex_colortag);
+				    	         /*   sleep(5);//停止五秒后开始调转弯点
+                                    pthread_mutex_lock(&mutex_colortag);
+                                     colortag=3;
+                                     pthread_mutex_unlock(&mutex_colortag);
 				                    while(1){
 
-				                        cout<<"  adjusting "<<endl;
-				                        if(abs(pix_x-360)<10&&abs(pix_y-240)<10){
-				                            if(colortag==3) {//第一次调整完成悬停3秒再判断
+                                        cout<<"  adjusting "<<endl;
+                                        pthread_mutex_lock(&mutex_colortag);
+                                       // colortag=3;
+                                        cout<<"colortag="<<colortag;
+                                        pthread_mutex_unlock(&mutex_colortag);
+
+				                        if(abs(pix_x-320)<20&&abs(pix_y-240)<10){
+				                            turn_check_num++;
+				                            if(turn_check_num>5) {
                                                 pthread_mutex_lock(&mutex_colortag);
                                                 colortag = 0;
                                                 pthread_mutex_unlock(&mutex_colortag);
-                                                sleep(3);
-                                                continue;
+                                                break;
                                             }
-                			                else break;
-
                                         }
-					                    usleep(1000*100);
-				                    }
+                                        else turn_check_num=0;
+					                    usleep(1000*500);
+				                    }*/
                                     sleep(5);
-				//图像微调
                                     check_num=0;
                                 }
 
@@ -247,13 +251,14 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
 
             //路线任务完成
             //下降
-
                 send_land();
-		cout<<"land success"<<endl;
+		        cout<<"land success"<<endl;
                 pthread_mutex_lock(&mutex_light_thread);
                 light_thread=false;
                 pthread_mutex_unlock(&mutex_light_thread);
-                sleep(1);
+
+                cout<<"land_success,light stop"<<endl;
+                sleep(10000);
             }
         }
          sleep(1);
@@ -381,18 +386,17 @@ void *adjustment(void* arg){
         cout << "times passed in seconds: " << t << endl;
        // t1 = (double)getTickCount();
 	}
-
 	else if(color==2)//紅色
 	{
 	if(ad_pix_y>250&&ad_pix_y<480){
 		send_go_back();
-		cout<<"go_back"<<endl;
-        fout<<"go_back"<<endl;
+//		cout<<"go_back"<<endl;
+//        fout<<"go_back"<<endl;
 	}
 	else if(ad_pix_y>0&&ad_pix_y<230){
 		send_go_forward();
-		cout<<"go_front"<<endl;
-        fout<<"go_front"<<endl;
+//		cout<<"go_front"<<endl;
+//        fout<<"go_front"<<endl;
 	}
 	else {
 	send_stop_front();
@@ -401,6 +405,7 @@ void *adjustment(void* arg){
 	}
 	}
 	else if(color==3){
+	    cout<<"send_adjust"<<endl;
 	    send_adj(ad_pix_x,ad_pix_y);//转弯点两种颜色微调
 	}
 

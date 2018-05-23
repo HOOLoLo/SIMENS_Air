@@ -136,6 +136,7 @@ void send_stop_rotation() {
 
 //???é??é??è???????€
 void send_land(){
+    cout<<"send_lend"<<endl;
     uart_write(command_serial_fd,land,5);
     sleep(60);
     uart_write(command_serial_fd,switch_hover,5);//é??è?????????????????é??????????????????????????
@@ -147,9 +148,9 @@ void send_go_left(){
     short speed=0x05AA;
     go_left[3] = (speed & 0x00ff);
     go_left[4] = ((speed & 0xff00) >> 8);
-//    for(int i=0;i<5;i++){
-//        cout<<hex<<(go_left[i]&0xFF)<<endl;
-//    }
+    for(int i=0;i<5;i++){
+        cout<<hex<<(go_left[i]&0xFF)<<endl;
+    }
     // cout<<"time1="<<time1<<endl;
     uart_write(command_serial_fd, go_left, 5);
     usleep(1000*13);
@@ -268,10 +269,9 @@ return 0;
 
 
 void send_adj(int pix_x,int pix_y){
-
+    //往左往后
     if(pix_x>340&&pix_x<640&&pix_y>250&&pix_y<480){
         short speed_left=0x05AA;
-
         go_left[3] = (speed_left & 0x00ff);
         go_left[4] = ((speed_left & 0xff00) >> 8);
 
@@ -286,7 +286,6 @@ void send_adj(int pix_x,int pix_y){
         uart_write(command_serial_fd,stop_forward,5);
         usleep(1000*10);
 
-        send_go_left();
         cout<<"send_go_left,go_back"<<endl;
 
     }
@@ -341,9 +340,61 @@ void send_adj(int pix_x,int pix_y){
         uart_write(command_serial_fd,stop_forward,5);
         usleep(1000*10);
         cout<<"send_go_left,go_back"<<endl;
+    }
+    else if(pix_x>340&&pix_x<640){//只向左
+        short speed=0x05AA;
+        go_left[3] = (speed & 0x00ff);
+        go_left[4] = ((speed & 0xff00) >> 8);
+//    for(int i=0;i<5;i++){
+//        cout<<hex<<(go_left[i]&0xFF)<<endl;
+//    }
+        // cout<<"time1="<<time1<<endl;
+        uart_write(command_serial_fd, go_left, 5);
+        usleep(1000*13);
+        uart_write(command_serial_fd,stop_cross,5);
+        usleep(1000*10);
+        cout<<"send_go_left"<<endl;
+    }
+    else if (pix_x>0&&pix_x<300){//只向右
+        short speed=0x062C;
+        go_right[3] = (speed & 0x00ff);
+        go_right[4] = ((speed & 0xff00) >> 8);
+//    for(int i=0;i<5;i++){
+//        cout<<hex<<(go_right[i]&0xFF)<<endl;
+//    }
+        // cout<<"time1="<<time1<<endl;
+        uart_write(command_serial_fd, go_right, 5);
+        usleep(1000*13);
+        uart_write(command_serial_fd,stop_cross,5);
+        usleep(1000*10);
+        cout<<"send_go_right"<<endl;
 
     }
+    else if(pix_y>250&&pix_y<480){//只向后
+        short speed=0x062C;
+        go_back[3] = (speed & 0x00ff);
+        go_back[4] = ((speed & 0xff00) >> 8);
 
+        uart_write(command_serial_fd, go_back, 5);
+        usleep(1000*13);
+        uart_write(command_serial_fd,stop_forward,5);
+        usleep(1000*10);
+        cout<<"send_go_back"<<endl;
+    }
+    else if(pix_y>0&&pix_y<230){//只向前
+        short speed=0x05AA;
+        go_forward[3] = (speed & 0x00ff);
+        go_forward[4] = ((speed & 0xff00) >> 8);
+//    for(int i=0;i<5;i++){
+//        cout<<hex<<(go_left[i]&0xFF)<<endl;
+//    }
+        // cout<<"time1="<<time1<<endl;
+        uart_write(command_serial_fd, go_forward, 5);
+        usleep(1000*13);
+        uart_write(command_serial_fd,stop_forward,5);
+        usleep(1000*10);
+        cout<<"send_go_forward"<<endl;
+    }
     else {
         send_stop_cross();
         send_stop_front();

@@ -160,9 +160,10 @@ void *run_light(void *arg) {
 
 		pthread_mutex_lock(&mutex_light_thread);
 		if(!light_thread){//如果当前不要图像处理就结束线程
-			break;
+            pthread_mutex_unlock(&mutex_light_thread);
+		    break;
 		}
-		pthread_mutex_unlock(&mutex_light_thread);
+        pthread_mutex_unlock(&mutex_light_thread);
 
 		//double t = (double)getTickCount();
 		while (!cap.read(frame)){
@@ -401,7 +402,7 @@ void *run_light(void *arg) {
 			pthread_mutex_unlock(&mutex_pix);
 		//    cout << colortag << endl;
 
-		cout << "light_times passed in seconds: " << t << endl;
+		//cout << "light_times passed in seconds: " << t << endl;
 	/*	//	if(iRecv<0){
 		//	perror("recvfrom");
 		//	}
