@@ -128,7 +128,7 @@ int set_info(int type,char *mac,float bx,int *out) {
 //	printf("type %d\n",type) ;
 	output[2] = 2.0 ;
 	if(type == 0xf1){
-		if(point_num_current>20&&point_num_current<0){
+		if(point_num_current>20||point_num_current<0){
 			point_num_current = 0 ;
 		}
 		if(point_num_current>=3){

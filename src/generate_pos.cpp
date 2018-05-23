@@ -52,9 +52,9 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
        // }
         if(generate_route(start,dst)&&!route.empty()) {
             cout<<"generate route success"<<endl;
-	cout<<"route_size="<<route.size()<<endl;
+	        cout<<"route_size="<<route.size()<<endl;
             list<int>::iterator it = route.begin();//iteratoræåè·¯åŸç¬¬äžäžªåçŽ 
-            take_off();
+         //   take_off();
 
        sleep(10);
 
@@ -83,15 +83,15 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
             pthread_create(&run_light_id,NULL,run_light,NULL);//起飞结束后启动图像调整线程
        	    pthread_create(&adjust_theta_id,NULL,adjustment_theta,NULL);
 
-	    sleep(20);
+	    sleep(10);
 	    
 	    pthread_create(&adjust_thread_id,NULL,adjustment,NULL);//调整线程
 	  //  sleep(25);
 	    //time_tag=1;
 //	 send_go_forward();
 //	send_go_back();
-	sleep(60);
-	send_land();
+	//sleep(60);
+//	send_land();
 
             while (it != (--route.end())) {//只要当前it不是最后一个节点就循环
                 int current_node, next_node;//当前节点编号和下一个节点编号
@@ -198,24 +198,30 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                              if(check_num>=3){
                                     next_path=true;
                                     send_hover();//坐标判断到达中心点,悬停
-				    	
-				    //pthread_mutex_lock(&mutex_colortag);
-                		    //colortag=3;
-                		    //pthread_mutex_unlock(&mutex_colortag);
-				/*while(1){
+				    	            sleep(5);//停止五秒后开始调转弯点
+				                    pthread_mutex_lock(&mutex_colortag);
+                		            colortag=3;
+                		            pthread_mutex_unlock(&mutex_colortag);
+				                    while(1){
 
-				cout<<" changing "<<endl;
-				if(abs(pix_x-360)<10&&abs(pix_y-240)<10){
-					   pthread_mutex_lock(&mutex_colortag);
-               				   colortag=0;
-                			 pthread_mutex_unlock(&mutex_colortag);
-	     						break;								
-					}
-				}*/
-                                    sleep(30);
+				                        cout<<"  adjusting "<<endl;
+				                        if(abs(pix_x-360)<10&&abs(pix_y-240)<10){
+				                            if(colortag==3) {//第一次调整完成悬停3秒再判断
+                                                pthread_mutex_lock(&mutex_colortag);
+                                                colortag = 0;
+                                                pthread_mutex_unlock(&mutex_colortag);
+                                                sleep(3);
+                                                continue;
+                                            }
+                			                else break;
+
+                                        }
+					                    usleep(1000*100);
+				                    }
+                                    sleep(5);
 				//图像微调
                                     check_num=0;
-                            }
+                                }
 
                                /* if (G[current_node][next_node].dst_x == G[current_node][next_node].light_pos) {
                                     if (abs(X - G[current_node][next_node].dst_x) > 10) {
@@ -371,32 +377,41 @@ void *adjustment(void* arg){
 		cout<<"stop"<<endl;
 		usleep(1000*500);
 		}
-
         t = ((double)getTickCount() - t) / getTickFrequency();
         cout << "times passed in seconds: " << t << endl;
-
        // t1 = (double)getTickCount();
+	}
 
-	}	
-	if(color==2)//紅色
+	else if(color==2)//紅色
 	{
 	if(ad_pix_y>250&&ad_pix_y<480){
 		send_go_back();
 		cout<<"go_back"<<endl;
-		usleep(1000*300);
-		send_stop_front();								
+        fout<<"go_back"<<endl;
 	}
 	else if(ad_pix_y>0&&ad_pix_y<230){
 		send_go_forward();
 		cout<<"go_front"<<endl;
-		usleep(1000*300);
-		send_stop_front();
+        fout<<"go_front"<<endl;
 	}
 	else {
 	send_stop_front();
-	cout<<"stop"<<endl;	
-	}		
-        }
+	cout<<"stop"<<endl;
+	usleep(1000*500);
+	}
+	}
+	else if(color==3){
+	    send_adj(ad_pix_x,ad_pix_y);//转弯点两种颜色微调
+	}
+
+	else if(color==0){//转弯后调整结束后悬停一段时间
+	    send_hover();
+	}
+
+	else{
+	    send_land();//意外降落；
+	}
+
     }
     fout.close();
 }

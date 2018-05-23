@@ -245,6 +245,10 @@ void *run_light(void *arg) {
 
           //  cout << "Blue:" << "x:" << core.x << "y:" << core.y << endl;
         }
+        else{
+			core.x=0;
+			core.y=0;
+			}
 
         //d
 		while(1){
@@ -256,7 +260,11 @@ void *run_light(void *arg) {
 			core2=arg_thread.core;
 	//		cout << "red:" << "x:" << arg_thread.core.x << "y:" << arg_thread.core.y << endl;
 
-		}
+			}
+			else{
+				core2.x=0;
+				core2.y=0;
+			}
 			arg_thread.tag=0;
 			break;
 		}
@@ -270,7 +278,6 @@ void *run_light(void *arg) {
 			chec_num++;
 			pthread_mutex_lock(&mutex_colortag);
 			pthread_mutex_lock(&mutex_theta);
-
 			if (colortag == 1 && theta1 != err&&!(core.x>dst.cols)) {
 				if (theta1 > 5 && theta1 < 175) {
 					theta=theta1;
@@ -328,7 +335,7 @@ void *run_light(void *arg) {
 				chec_num=0;
                             }*/
 			}
-			else if(colortag==3 && theta1!=err && theta2!=err){
+			else if(colortag==3 && theta1!=err && theta2!=err){//转角处任意theta都能赋值
 				if (theta1 > 5 && theta1 < 175) {
 					theta=theta1;
 				}
@@ -371,7 +378,6 @@ void *run_light(void *arg) {
 				send_stop_cross();
 				send_stop_front();*/
 			}
-			
 			else if(colortag==0){//xuanting
 				send_hover();
 			}
@@ -379,7 +385,8 @@ void *run_light(void *arg) {
 			pthread_mutex_unlock(&mutex_theta);
             t = ((double)getTickCount() - t) / getTickFrequency();
 		}
-		else {
+
+		else {//停止旋转
 			uart_write(command_serial_fd,stop_rotation,5);
 
 		}
@@ -387,14 +394,12 @@ void *run_light(void *arg) {
            // double t = (double)getTickCount();
 			pthread_mutex_lock(&mutex_pix);
 			//判断core的x和y是否超过了像素值，没有则正常
-			if(!(core.x>dst.cols)&&!(core2.x>dst.rows)) {
+			if(!(core.x>dst.cols)&&!(core2.x>dst.rows)) {//无论什么时候都给
 				pix_x = core.x;
 				pix_y = core2.x;
 			}
 			pthread_mutex_unlock(&mutex_pix);
-
 		//    cout << colortag << endl;
-
 
 		cout << "light_times passed in seconds: " << t << endl;
 	/*	//	if(iRecv<0){
