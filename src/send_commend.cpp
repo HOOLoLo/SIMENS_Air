@@ -215,14 +215,14 @@ void send_stop_cross(){
     return 0;
 }*/
 
-int generate_command(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y){
+int generate_command(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y) {
     //先判断是否到达目的?
-	//cout<<"dst_x="<<dst_x<<"dst_y"<<dst_y<<endl;
+    //cout<<"dst_x="<<dst_x<<"dst_y"<<dst_y<<endl;
 
-    short speed_forward=0x05C8;
-    short speed_back=0x05F0;
-    short speed_left=0x05C8;
-    short speed_right=0x05F0;
+    short speed_forward = 0x05C8;//速度都设为20
+    short speed_back = 0x05F0;
+    short speed_left = 0x05C8;
+    short speed_right = 0x05F0;
 
 
     go_forward_road[3] = (speed_forward & 0x00ff);
@@ -231,45 +231,42 @@ int generate_command(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y
     go_back_road[4] = ((speed_back & 0xff00) >> 8);
 
     go_left_road[3] = (speed_left & 0x00ff);
-    go_left_road[4] = ((speed_left& 0xff00) >> 8);
+    go_left_road[4] = ((speed_left & 0xff00) >> 8);
     go_right_road[3] = (speed_right & 0x00ff);
     go_right_road[4] = ((speed_right & 0xff00) >> 8);
 
-    if(dst_x==str_x){//y方向飞行
-        if(abs(cur_Y-dst_y)<=30){
-            return 1;
-        }
-        else{
-            if (cur_Y-dst_y>0){
-                uart_write(command_serial_fd,go_left_road,5);
-                
-            }
-            else if(cur_Y-dst_y<0){
-                uart_write(command_serial_fd,go_right_road,5);
-            }
-        }
-    }
-    else if(dst_y==str_y){//x方向飞行
-        if(abs(cur_X-dst_x)<=30){
-            return 1;
-        }
-        else{
-            if (cur_X-dst_x>0){
-                uart_write(command_serial_fd,go_back_road,5);
 
-            }
-            else if(cur_X-dst_x<0){
-                uart_write(command_serial_fd,go_forward_road,5);
-            }
-        }
+    if (dst_x == str_x) {//y方向飞行
+
+        if ((str_y - dst_y) > 0) {//出发点的y大于终点的y
+
+            if ((cur_Y - dst_y) <= 30) {//只要小于dst_y+30就认为到达
+                return 1;
+            } else uart_write(command_serial_fd, go_left_road, 5);//否则向左飞行
+        } else if ((str_y - dst_y) < 0) {
+            if ((cur_Y - dst_y) >= -30) {//只要大于dst_y-30就认为到达
+                return 1;
+            } else uart_write(command_serial_fd, go_right_road, 5);//否则向右飞行
+        } else return 1;
     }
-return 0;
+
+    else if (dst_y == str_y) {//x方向飞行
+        if ((str_x - dst_x) > 0) {//出发点的x大于终点的x
+            if ((cur_X - dst_x) <= 30) {//只要小于dst_x+30就认为到达
+                return 1;
+            } else uart_write(command_serial_fd, go_back_road, 5);//否则向后飞行
+        } else if ((str_x - dst_x) < 0) {
+            if ((cur_X - dst_x) >= -30) {//只要大于dst_x-30就认为到达
+                return 1;
+            } else uart_write(command_serial_fd, go_forward_road, 5);//否则向前飞行
+        } else return 1;
+    }
+    else return 1;
+
 }
 
-
-
 void send_adj(int pix_x,int pix_y){
-    //往左往后
+   /* //往左往后
     if(pix_x>340&&pix_x<640&&pix_y>250&&pix_y<480){
         short speed_left=0x05AA;
         go_left[3] = (speed_left & 0x00ff);
@@ -401,7 +398,7 @@ void send_adj(int pix_x,int pix_y){
         cout<<"stop"<<endl;
         usleep(1000*500);
     }
-
+*/
 
 
 
