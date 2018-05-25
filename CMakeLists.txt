@@ -12,8 +12,8 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 LINK_LIBRARIES(-lpthread -lm -ldl)
-find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+#find_package(OpenCV REQUIRED)
+#include_directories(${OpenCV_INCLUDE_DIRS})
 
 
 set(SOURCE_FILES
@@ -44,5 +44,5 @@ set(SOURCE_FILES
 
 add_executable(ciotfly ${SOURCE_FILES}  )
 
-target_link_libraries(ciotfly ${OpenCV_LIBS})
+#target_link_libraries(ciotfly ${OpenCV_LIBS})
 

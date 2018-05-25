@@ -6,6 +6,7 @@
 #define CIOTFLY_SEND_COMMEND_H
 
 #include <zconf.h>
+#include "generate_pos.h"
 
 
 extern int command_serial_fd;
@@ -52,4 +53,6 @@ void send_stop_cross();
 void send_stop_front();
 
 void send_stop_rotation();
+
+void send_adj(int pix_x,int pix_y);
 #endif //CIOTFLY_SEND_COMMEND_H
