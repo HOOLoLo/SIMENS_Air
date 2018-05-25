@@ -187,9 +187,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                 int isArrive;
                                 isArrive=generate_command( G[current_node][next_node].dst_x,G[current_node][next_node].dst_y, G[current_node][next_node].str_x, G[current_node][next_node].str_y,X,Y);
                                 if(isArrive==1) {
-
                                     check_num++;//检测到一次到达点就check_num+1;
-
                                 }
 			                 else{
                                     check_num=0;
@@ -198,8 +196,10 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                 }
                              if(check_num>=3){
                                     next_path=true;
-                                    send_hover();//坐标判断到达中心点,悬停
-				    	         /*   sleep(5);//停止五秒后开始调转弯点
+                                    send_hover();
+
+                                    //坐标判断到达中心点,悬停
+				    	            sleep(5);//停止五秒后开始调转弯点
                                     pthread_mutex_lock(&mutex_colortag);
                                      colortag=3;
                                      pthread_mutex_unlock(&mutex_colortag);
@@ -412,7 +412,6 @@ void *adjustment(void* arg){
 	else if(color==0){//转弯后调整结束后悬停一段时间
 	    send_hover();
 	}
-
 	else{
 	    send_land();//意外降落；
 	}
