@@ -92,13 +92,9 @@ int col_search(Mat srcImage, int startcol, int endcol, Point2i & head_full, Poin
 
 			find_col_head_tail(i, srcImage, head, tail, 3);
 
-
-
 			if (head > mthreshold && (tail - head) > 0) {
 
 				if (tail < nRows - mthreshold) {
-
-
 
 					head_full = Point2i(i, head);
 
@@ -170,7 +166,6 @@ double Col_Search_theta(Mat & srcImage, int mthreshold, Point2i & tophead, Point
 		top = Point2i(tophead.x, (tophead.y + toptail.y) / 2);
 
 		bottom = Point2i(bottomhead.x, (bottomhead.y + bottomtail.y) / 2);
-
 
 
 	}
@@ -355,8 +350,6 @@ double find_true_theta(Mat & srcImage, int mthreshold, Point2i & tophead, Point2
 
 		bottom = bottomhead;
 
-
-
 	}
 
 	if (tag1 == 0 && tag2 == 0) {
@@ -378,9 +371,6 @@ void find_cross_line(Point2i top, Point2i bottom, int cols, int rows, Point2i ed
 	int i = 0;
 
 	//�ж�����������������ֱ���ཻ�ģ�ֱ�߷���������ʽ���ÿ�編�жϣ���^����򣩷������ж��Ƿ�ͬ��
-
-
-
 	//y���н���
 
 	if ((((top.x - bottom.x)*(0 - top.y) - (0 - top.x)*(top.y - bottom.y)) ^ ((top.x - bottom.x)*(rows - top.y) - (0 - top.x)*(top.y - bottom.y))) < 0 && i<2) {

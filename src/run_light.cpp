@@ -103,7 +103,7 @@ void *run_light(void *arg) {
 	int VvH = 255;
 	uchar red_L[3] = { 170,150,20 };
 	uchar red_H[3] = { 180,255,255 };
-	uchar blue_L[3] = { 115,230,100 };
+	uchar blue_L[3] = { 115,100,100 };
 	uchar blue_H[3] = { 125,255,255 };
 	arg_thread arg_thread;//{ { red_L[0],red_L[1],red_L[2] },{ red_H[0],red_H[1],red_H[2] },core3,0 };
 	arg_thread.red_H[0]=red_H[0];
@@ -151,11 +151,14 @@ void *run_light(void *arg) {
 
 	Size nsize = Size(640, 480);
 	//保存视频用
-	//	VideoWriter writer=VideoWriter("video.avi",CV_FOURCC('M','J','P','G'),30,nsize,true);
+	        VideoWriter writer=VideoWriter("video.avi",CV_FOURCC('M','J','P','G'),30,nsize,true);
 	int color_count = 0;
-	int frame_count=0;
+
+	int bad_frame=0;
 	while (cap.isOpened()) {
-		//frame_count++;
+
+
+
 		//if(frame_count<3) continue;
 
 		pthread_mutex_lock(&mutex_light_thread);
@@ -247,6 +250,11 @@ void *run_light(void *arg) {
           //  cout << "Blue:" << "x:" << core.x << "y:" << core.y << endl;
         }
         else{
+          //  char name[20];
+		    //bad_frame++;
+            //sprintf(name,"%d.jpg",bad_frame);
+            //imwrite(name,frame);
+		 //   cout<<"blue_error"<<endl;
 			core.x=0;
 			core.y=0;
 			}
@@ -265,19 +273,27 @@ void *run_light(void *arg) {
 			else{
 				core2.x=0;
 				core2.y=0;
+			//	cout<<"red_error"<<endl;
 			}
 			arg_thread.tag=0;
 			break;
 		}
 		//	writer.write(frame);
 	}
-		
+//         char name[20];
+//        bad_frame++;
+//        sprintf(name,"%d.jpg",bad_frame);
+//        imwrite(name,dst);
+        //writer.write(dst);
 		//如果两个theta有一个不为0
         double t = (double)getTickCount();
 		if (theta1 != err || theta2 != err) {
 			//colortag=1是蓝色2是红色在读的时候先锁住
 			chec_num++;
+
+		//	cout<<"light thread try to lock colortag"<<endl;
 			pthread_mutex_lock(&mutex_colortag);
+
 			pthread_mutex_lock(&mutex_theta);
 			if (colortag == 1 && theta1 != err&&!(core.x>dst.cols)) {
 				if (theta1 > 5 && theta1 < 175) {
@@ -383,6 +399,7 @@ void *run_light(void *arg) {
 				send_hover();
 			}
 			pthread_mutex_unlock(&mutex_colortag);
+		//	cout<<"unlock colortag"<<endl;
 			pthread_mutex_unlock(&mutex_theta);
             t = ((double)getTickCount() - t) / getTickFrequency();
 		}
@@ -398,6 +415,7 @@ void *run_light(void *arg) {
 			if(!(core.x>dst.cols)&&!(core2.x>dst.rows)) {//无论什么时候都给
 				pix_x = core.x;
 				pix_y = core2.x;
+
 			}
 			pthread_mutex_unlock(&mutex_pix);
 		//    cout << colortag << endl;
@@ -413,7 +431,7 @@ void *run_light(void *arg) {
 		//	}
 	 */
 	}
-	//writer.release();//保存视频用
+	writer.release();//保存视频用
 	//close(sock);
 	cap.release();
 	cin.get();

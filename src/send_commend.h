@@ -36,7 +36,7 @@ extern char go_down[5];//={'\xFF','\x02','\x02','\x4A','\x07'};//下降
 //降落
 extern char land[5];//={'\xFF','\x02','\x04','\xBA','\x06'};//降落,注意降落结束后一分钟要发送切换悬停模式。
 extern char self_check[5];
-void send_go_left();
+void send_go_left(int pix_x,int pix_y);
 void take_off();
 void theta_hold();//对航向角微调
 void theta_hold(double theta);
@@ -45,7 +45,7 @@ void send_land();
 
 int generate_command(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y);
 void send_go_left();
-void send_go_right();
+void send_go_right(int pix_x,int pix_y);
 void send_go_forward();
 
 void send_hover();
