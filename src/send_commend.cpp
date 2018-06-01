@@ -77,7 +77,7 @@ void send_stop_front(){
 
 //向前微调指令
 void send_go_forward(){
-    short speed=0x05AA;
+    short speed=0x05BE;
     go_forward[3] = (speed & 0x00ff);
     go_forward[4] = ((speed & 0xff00) >> 8);
 //    for(int i=0;i<5;i++){
@@ -85,9 +85,9 @@ void send_go_forward(){
 //    }
     // cout<<"time1="<<time1<<endl;
     uart_write(command_serial_fd, go_forward, 5);
-    usleep(1000*13);
+    usleep(1000*20);
     uart_write(command_serial_fd,stop_forward,5);
-    usleep(1000*10);
+    usleep(1000*8);
 }
 
 
@@ -98,9 +98,9 @@ void send_go_back(){
     go_back[4] = ((speed & 0xff00) >> 8);
 
     uart_write(command_serial_fd, go_back, 5);
-    usleep(1000*13);
+    usleep(1000*20);
     uart_write(command_serial_fd,stop_forward,5);
-    usleep(1000*10);
+    usleep(1000*8);
 
 }
 //维持角度的函数
@@ -110,7 +110,8 @@ void theta_hold(double theta) {
     double deviation=(theta-90);//
     
     if(abs(deviation)>=30){//当角度大于30度的时候就降落
-	cout<<deviation<<endl;
+	cout<<"deviation="<<deviation<<endl;
+	cout<<"theta="<<theta<<endl;
 	uart_write(command_serial_fd,land,5);
 	}
 
@@ -205,7 +206,7 @@ int generate_command(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y
 
     short speed_forward = 0x05C8;//速度都设为20
     short speed_back = 0x05F0;
-    short speed_left = 0x05C8;
+    short speed_left = 0x05BE;//左速度30
     short speed_right = 0x05F0;
 
 
@@ -262,10 +263,14 @@ int generate_command(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y
     return 0;
 }
 
+
+
+
+
 void send_adj(int pix_x,int pix_y){
-   /* //往左往后
+   //往左往后
     if(pix_x>340&&pix_x<640&&pix_y>250&&pix_y<480){
-        short speed_left=0x05AA;
+        short speed_left=0x05BE;
         go_left[3] = (speed_left & 0x00ff);
         go_left[4] = ((speed_left & 0xff00) >> 8);
 
@@ -275,51 +280,51 @@ void send_adj(int pix_x,int pix_y){
 
         uart_write(command_serial_fd, go_left, 5);
         uart_write(command_serial_fd, go_back, 5);
-        usleep(1000*13);
+        usleep(1000*20);
         uart_write(command_serial_fd,stop_cross,5);
         uart_write(command_serial_fd,stop_forward,5);
-        usleep(1000*10);
+        usleep(1000*8);
 
         cout<<"send_go_left,go_back"<<endl;
 
     }
 
     else if(pix_x>0&&pix_x<300&&pix_y>0&&pix_y<230){
-        short speed_right=0x062C;
+        short speed_right=0x0622;
         go_right[3] = (speed_right & 0x00ff);
         go_right[4] = ((speed_right & 0xff00) >> 8);
 
-        short speed_forward=0x05AA;
+        short speed_forward=0x05BE;
         go_forward[3]=(speed_forward & 0x00ff);
         go_forward[4] =  ((speed_forward & 0xff00) >> 8);
 
         uart_write(command_serial_fd, go_right, 5);
         uart_write(command_serial_fd, go_forward, 5);
-        usleep(1000*13);
+        usleep(1000*20);
         uart_write(command_serial_fd,stop_cross,5);
         uart_write(command_serial_fd,stop_forward,5);
-        usleep(1000*10);
+        usleep(1000*8);
         cout<<"send_go_right,go_forward"<<endl;
     }
     else if(pix_x>340&&pix_x<640&&pix_y>0&&pix_y<230){
-        short speed_left=0x05AA;
+        short speed_left=0x05BE;
         go_left[3] = (speed_left & 0x00ff);
         go_left[4] = ((speed_left & 0xff00) >> 8);
 
-        short speed_forward=0x05AA;
+        short speed_forward=0x05BE;
         go_forward[3]=(speed_forward & 0x00ff);
         go_forward[4] =  ((speed_forward & 0xff00) >> 8);
 
         uart_write(command_serial_fd, go_left, 5);
         uart_write(command_serial_fd, go_forward, 5);
-        usleep(1000*13);
+        usleep(1000*20);
         uart_write(command_serial_fd,stop_cross,5);
         uart_write(command_serial_fd,stop_forward,5);
-        usleep(1000*10);
+        usleep(1000*8);
         cout<<"send_go_left,go_forward"<<endl;
     }
     else if(pix_x>0&&pix_x<300&&pix_y>250&&pix_y<480){
-        short speed_right=0x062C;
+        short speed_right=0x0622;
         go_right[3] = (speed_right & 0x00ff);
         go_right[4] = ((speed_right & 0xff00) >> 8);
 
@@ -329,14 +334,14 @@ void send_adj(int pix_x,int pix_y){
 
         uart_write(command_serial_fd, go_right, 5);
         uart_write(command_serial_fd, go_back, 5);
-        usleep(1000*13);
+        usleep(1000*20);
         uart_write(command_serial_fd,stop_cross,5);
         uart_write(command_serial_fd,stop_forward,5);
-        usleep(1000*10);
+        usleep(1000*8);
         cout<<"send_go_left,go_back"<<endl;
     }
     else if(pix_x>340&&pix_x<640){//只向左
-        short speed=0x05AA;
+        short speed=0x05BE;
         go_left[3] = (speed & 0x00ff);
         go_left[4] = ((speed & 0xff00) >> 8);
 //    for(int i=0;i<5;i++){
@@ -344,13 +349,13 @@ void send_adj(int pix_x,int pix_y){
 //    }
         // cout<<"time1="<<time1<<endl;
         uart_write(command_serial_fd, go_left, 5);
-        usleep(1000*13);
+        usleep(1000*20);
         uart_write(command_serial_fd,stop_cross,5);
-        usleep(1000*10);
+        usleep(1000*8);
         cout<<"send_go_left"<<endl;
     }
     else if (pix_x>0&&pix_x<300){//只向右
-        short speed=0x062C;
+        short speed=0x0622;
         go_right[3] = (speed & 0x00ff);
         go_right[4] = ((speed & 0xff00) >> 8);
 //    for(int i=0;i<5;i++){
@@ -358,25 +363,25 @@ void send_adj(int pix_x,int pix_y){
 //    }
         // cout<<"time1="<<time1<<endl;
         uart_write(command_serial_fd, go_right, 5);
-        usleep(1000*13);
+        usleep(1000*20);
         uart_write(command_serial_fd,stop_cross,5);
-        usleep(1000*10);
+        usleep(1000*8);
         cout<<"send_go_right"<<endl;
 
     }
     else if(pix_y>250&&pix_y<480){//只向后
-        short speed=0x062C;
+        short speed=0x0622;
         go_back[3] = (speed & 0x00ff);
         go_back[4] = ((speed & 0xff00) >> 8);
 
         uart_write(command_serial_fd, go_back, 5);
-        usleep(1000*13);
+        usleep(1000*20);
         uart_write(command_serial_fd,stop_forward,5);
-        usleep(1000*10);
+        usleep(1000*8);
         cout<<"send_go_back"<<endl;
     }
     else if(pix_y>0&&pix_y<230){//只向前
-        short speed=0x05AA;
+        short speed=0x05BE;
         go_forward[3] = (speed & 0x00ff);
         go_forward[4] = ((speed & 0xff00) >> 8);
 //    for(int i=0;i<5;i++){
@@ -384,9 +389,9 @@ void send_adj(int pix_x,int pix_y){
 //    }
         // cout<<"time1="<<time1<<endl;
         uart_write(command_serial_fd, go_forward, 5);
-        usleep(1000*13);
+        usleep(1000*20);
         uart_write(command_serial_fd,stop_forward,5);
-        usleep(1000*10);
+        usleep(1000*8);
         cout<<"send_go_forward"<<endl;
     }
     else {
@@ -395,7 +400,7 @@ void send_adj(int pix_x,int pix_y){
         cout<<"stop"<<endl;
         usleep(1000*500);
     }
-*/
+
 
 
 

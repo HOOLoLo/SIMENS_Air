@@ -48,7 +48,12 @@ void * red_light_thread(void * arg)
 	Point2i top;
 	Point2i bottom;
 	Mat hsv;
-	Mat dst=Mat(480,640,CV_8UC1);
+	Mat dst=Mat(640,480,CV_8UC1);
+//	int bad_frame=0;
+//        char name[20]={0};
+//        bad_frame++;
+//        sprintf(name,"2%d.jpg",bad_frame);
+//        imwrite(name,pframe);
 	while (1) {
 	//	cout << "thread is running" << endl;
 
@@ -65,6 +70,9 @@ void * red_light_thread(void * arg)
 		inrange_c(hsv, arg_T->red_L, arg_T->red_H, dst);
 		arg_T->theta = find_true_theta(dst, mthreshold, tophead, toptail, bottomhead, bottomtail, top, bottom);
 		arg_T->core = find_core(top, bottom, dst.cols, dst.rows);
+
+
+
 	//	cout << "done" << endl;
 		arg_T->tag=1;
 		pthread_mutex_unlock(&mutex);
@@ -225,8 +233,15 @@ void *run_light(void *arg) {
 		Mat dst_change = Mat(frame.cols, frame.rows, CV_8UC1);
 		Mat rotation = Mat(frame.cols, frame.rows, CV_8UC1);
 		Mat rotate = (Mat_<float>(2, 3) << 0, 1, 0, 1, 0, 0);
+
+
 		cvtColor(frame, hsv, COLOR_BGR2HSV);
 		inrange(hsv, blue_L, blue_H, dst );
+
+//        Mat dst2 = Mat(frame.cols, frame.rows, CV_8UC1);
+//		inrange_c(hsv,red_L,red_H,dst2);
+
+
 /*		//Mat LUT= Mat(frame.rows, frame.cols, CV_8UC1);
 
 		//inrange_lut(hsv, table_H, table_S, table_V, LUT);
@@ -273,17 +288,25 @@ void *run_light(void *arg) {
 			else{
 				core2.x=0;
 				core2.y=0;
-			//	cout<<"red_error"<<endl;
+				//cout<<"red_error"<<endl;
+               // theta2 = find_true_theta(dst2, mthreshold, tophead2, toptail2, bottomhead2, bottomtail2, top2, bottom2);
+               // core2 = find_core(top2, bottom2, dst2.cols, dst2.rows);
+              //  cout<<"main_theta2="<<theta2<<endl;
+
+//                char name[20];
+//                  bad_frame++;
+//                  sprintf(name,"%d.jpg",bad_frame);
+//                  imwrite(name,dst2);
 			}
 			arg_thread.tag=0;
 			break;
 		}
 		//	writer.write(frame);
 	}
-//         char name[20];
-//        bad_frame++;
-//        sprintf(name,"%d.jpg",bad_frame);
-//        imwrite(name,dst);
+       //  char name[20];
+      //  bad_frame++;
+      //  sprintf(name,"%d.jpg",bad_frame);
+       // imwrite(name,dst2);
         //writer.write(dst);
 		//如果两个theta有一个不为0
         double t = (double)getTickCount();
@@ -329,7 +352,8 @@ void *run_light(void *arg) {
 //colortag=2是红色
 			else if (colortag == 2 && theta2 != err && !(core2.x>dst.rows)) {
 				if (theta2 > 5 && theta2 < 175) {
-					theta=theta2;
+					theta=(180-theta2);
+					cout<<"red_theta="<<(180-theta2)<<endl;
 					}
 			/*if(chec_num>0){
 				if(core2.x>240&&core2.x<480){
@@ -357,7 +381,7 @@ void *run_light(void *arg) {
 					theta=theta1;
 				}
 				else if (theta2 > 5 && theta2 < 175) {
-					theta=theta2;
+					theta=(180-theta2);
 				}
 
 					

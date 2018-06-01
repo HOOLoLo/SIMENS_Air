@@ -17,6 +17,7 @@
 using namespace std;
 
 int time_tag=0;//飞机悬停时微调和飞行过程中微调用的方法不一样，0为悬停，1为飞行
+bool is_hover=false;
 
 void command_thread(){//这个函数是整个程序的核心,完成了，接受uwb数据，生成位置，判断位置，设置分组，发送命令所有任务
     char *com = "/dev/ttyUSB0" ;//读取uwb设备串口名
@@ -32,6 +33,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
     char rcv_buf[200] ;
     char mac[80] ;//基站mac地址
     int check_num=0;//记录定位数据次数(加在一开始)
+
 
 
     while(open_serial(com)==-1){//打开uwb串口
@@ -56,15 +58,12 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
 
 
             list<int>::iterator it = route.begin();//iteratoræåè·¯åŸç¬¬äžäžªåçŽ 
-            take_off();
+          take_off();
 
    //    sleep(5);
-
-
-	//    sleep(60);
-
-	//send_land();
-//            uart_write(command_serial_fd,switch_hover,5);
+//	    sleep(60);
+//	send_land();
+    //            uart_write(command_serial_fd,switch_hover,5);
             cout<<"take off success"<<endl;
 
 
@@ -85,7 +84,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
             pthread_create(&run_light_id,NULL,run_light,NULL);//起飞结束后启动图像调整线程
        	    cout<<"create light_thread success"<<endl;
             pthread_create(&adjust_theta_id,NULL,adjustment_theta,NULL);
-	        sleep(30);
+	        sleep(10);
             pthread_create(&adjust_thread_id,NULL,adjustment,NULL);//调整线程
 	        sleep(20);
 	    //time_tag=1;
@@ -208,15 +207,19 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                     int ncheck=*(++it);//判断下一个目标位置使用的灯管是不是和原来的一样的
                                      it--;//it减回来
                                     next_path = true;
-                                    send_hover();
-                                    sleep(20);
-                                    send_land();
+//                                    send_hover();
+//                                    sleep(20);
+//                                    send_land();
 
-                                 if (it!=(--route.end())&&G[next_node][ncheck].color != G[current_node][next_node].color) {
+                              //   if (/*it!=(--route.end())&&*/G[next_node][ncheck].color != G[current_node][next_node].color) {
 
                                      cout << "next path =true" << endl;
-
+                                     is_hover= true;
                                      send_hover();
+                                     sleep(20);
+                                     //send_land();
+                                     is_hover=false;
+
                                      int turn_check_num = 0;
                                      if (G[current_node][next_node].color == 1) {//如果当前灯管颜色是蓝色，那么先进入红色微调，蓝色应该不用调了
                                          cout << "try to lock colortag" << endl;
@@ -225,7 +228,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                          colortag = 2;//换成红色微调
                                          pthread_mutex_unlock(&mutex_colortag);
                                          while (turn_check_num < 5) {
-                                             if (abs(pix_y - 240) < 10) {
+                                             if (abs(pix_y - 270) < 20) {
                                                  turn_check_num++;
                                              } else turn_check_num = 0;
                                              usleep(1000 * 1000);//每一秒检查一次
@@ -235,7 +238,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                          colortag = 1;//换成蓝色微调
                                          pthread_mutex_unlock(&mutex_colortag);
                                          while (turn_check_num < 5) {
-                                             if (abs(pix_x - 320) < 15) {
+                                             if (abs(pix_x - 320) < 20) {
                                                  turn_check_num++;
                                              } else turn_check_num = 0;
                                              usleep(1000 * 1000);//每一秒检查一次
@@ -269,7 +272,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                       }*/
                                      sleep(5);
                                      check_num = 0;
-                                 }
+                                // }
                              }
 
                                /* if (G[current_node][next_node].dst_x == G[current_node][next_node].light_pos) {
@@ -377,8 +380,10 @@ void *adjustment(void* arg){
     color=colortag;
 	pthread_mutex_unlock(&mutex_colortag);
 	//t = ((double)getTickCount() - t) / getTickFrequency();
+        cout<<"color="<<color<<endl;
         double t = (double)getTickCount();
-	if(color==1)//蓝色
+
+	if(color==1&&!is_hover)//蓝色
 	{
        // double t = (double)getTickCount();
 		if(ad_pix_x>340&&ad_pix_x<640){
@@ -420,6 +425,7 @@ void *adjustment(void* arg){
 		//usleep(1000*tm_sleep);
 		//cout<<"and stop"<<endl;*/
 		}
+
 		// usleep(1000*50);
 		else {
 		send_stop_cross();
@@ -430,37 +436,42 @@ void *adjustment(void* arg){
         //cout << "times passed in seconds: " << t << endl;
        // t1 = (double)getTickCount();
 	}
-	else if(color==2)//紅色
+	else if(color==2&&!is_hover)//紅色
 	{
-	if(ad_pix_y>250&&ad_pix_y<480){
+	if(ad_pix_y>290&&ad_pix_y<480){
 		send_go_back();
 		cout<<"go_back"<<endl;
 //        fout<<"go_back"<<endl;
 	}
-	else if(ad_pix_y>0&&ad_pix_y<230){
+	else if(ad_pix_y>0&&ad_pix_y<250){
 		send_go_forward();
 		cout<<"go_forward"<<endl;
 //		cout<<"go_front"<<endl;
 //        fout<<"go_front"<<endl;
 	}
+
 	else {
 	send_stop_front();
 	cout<<"stop"<<endl;
 	usleep(1000*500);
 	}
 	}
+
+	else if(is_hover){
+	    send_hover();
+	    //sleep(10);
+	}
 	else if(color==3){
 	    cout<<"send_adjust"<<endl;
 	    send_adj(ad_pix_x,ad_pix_y);//转弯点两种颜色微调
 	}
-
 	else if(color==0){//转弯后调整结束后悬停一段时间
 	    send_hover();
 	}
 	else{
 	    send_land();//意外降落；
 	}
-    }
+	}
     fout.close();
 }
 
@@ -472,13 +483,14 @@ void *adjustment_theta(void* arg){
         pthread_mutex_lock(&mutex_light_thread);
         do_adj=light_thread;
         pthread_mutex_unlock(&mutex_light_thread);
+
         if(do_adj==false){
             break;
         }
         pthread_mutex_lock(&mutex_theta);
         ad_theta = theta;
         pthread_mutex_unlock(&mutex_theta);
-
+       // cout<<"theta="<<ad_theta<<endl;
         if (ad_theta > 5 && ad_theta < 175) {
             theta_hold(theta);
         } else {
