@@ -422,4 +422,74 @@ void send_hover() {
 	    }
 
 
+int go_to_land(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y){//去降落的指令函数
+    short speed_forward = 0x05D2;//速度都设为10
+    short speed_back = 0x05E6;//10
+    short speed_left = 0x05C8;//左速度20
+    short speed_right = 0x05E6;//10
 
+
+    go_forward_road[3] = (speed_forward & 0x00ff);
+    go_forward_road[4] = ((speed_forward & 0xff00) >> 8);
+    go_back_road[3] = (speed_back & 0x00ff);
+    go_back_road[4] = ((speed_back & 0xff00) >> 8);
+
+    go_left_road[3] = (speed_left & 0x00ff);
+    go_left_road[4] = ((speed_left & 0xff00) >> 8);
+    go_right_road[3] = (speed_right & 0x00ff);
+    go_right_road[4] = ((speed_right & 0xff00) >> 8);
+
+
+    if (dst_x == str_x) {//y方向飞行
+
+       // if ((str_y - dst_y) > 0) {//出发点的y大于终点的y
+
+            if (abs(cur_Y - dst_y) <= 20) {//只要小于dst_y+20就认为到达
+                uart_write(command_serial_fd,stop_cross,5);
+                return 1;
+            }
+            else if(cur_Y-dst_y>20){
+                uart_write(command_serial_fd, go_left_road, 5);
+            }
+            else if(cur_Y-dst_y<-20){
+                uart_write(command_serial_fd, go_right_road, 5);
+            }
+            else return 1;//如果出发点y=目标点y就认为到达
+    }
+
+    else if (dst_y == str_y) {//x方向飞行
+
+        if (abs(cur_X - dst_x) <= 20) {//只要小于dst_x+20就认为到达
+            uart_write(command_serial_fd,stop_cross,5);
+            return 1;
+        }
+        else if(cur_X-dst_x>20){
+            uart_write(command_serial_fd, go_left_road, 5);
+        }
+        else if(cur_X-dst_x<-20){
+            uart_write(command_serial_fd, go_right_road, 5);
+        }
+        else return 1;//如果出发点y=目标点y就认为到达
+    }
+    return 0;
+
+}
+
+
+void just_left(){//只向左
+    char left[5]={'\xFF','\x02','\x00','\xBE','\x05'};//1470
+
+}
+
+void just_right(){//只向右
+    char right[5]={'\xFF','\x02','\x00','\xFA','\x05'};//1530
+    uart_write(command_serial_fd,right,5);
+}
+void just_forward(){//只向前
+    char forward[5]={'\xFF','\x02','\x01','\xBE','\x05'};//1470
+    uart_write(command_serial_fd,forward,5);
+}
+void just_back(){//只向后
+    char back[5]={'\xFF','\x02','\x01','\xFA','\x05'};//1530
+    uart_write(command_serial_fd,back,5);
+}

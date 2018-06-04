@@ -55,4 +55,10 @@ void send_stop_front();
 void send_stop_rotation();
 
 void send_adj(int pix_x,int pix_y);
+
+void just_left();
+void just_right();
+void just_forward();
+void just_back();
+
 #endif //CIOTFLY_SEND_COMMEND_H

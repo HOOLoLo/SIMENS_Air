@@ -19,6 +19,9 @@ using namespace std;
 int time_tag=0;//飞机悬停时微调和飞行过程中微调用的方法不一样，0为悬停，1为飞行
 bool is_hover=false;
 
+
+
+
 void command_thread(){//这个函数是整个程序的核心,完成了，接受uwb数据，生成位置，判断位置，设置分组，发送命令所有任务
     char *com = "/dev/ttyUSB0" ;//读取uwb设备串口名
     char *uart1="/dev/ttyAMA1";//向无人机发送命令串口
@@ -38,9 +41,13 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
     while(open_serial(com)==-1){//打开uwb串口
         sleep(10) ;
     }
+
+
     while (uart_open(command_serial_fd,uart1,uart1_para)==-1){
         sleep(1);
     }
+
+
 //    while(uart_set(command_serial_fd,uart1_para,0,8,'N',1) == -1){
 //        sleep(1);
 //    }
@@ -86,7 +93,8 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
 	        sleep(10);
             pthread_create(&adjust_thread_id,NULL,adjustment,NULL);//调整线程
 	        sleep(5);
-	        while (1){
+
+	        while (1){//起飞后调整位置如果能飞就执行任务
 	            int nowcolor=0;//起飞的时候的灯管颜色
                 pthread_mutex_lock(&mutex_colortag);
                 nowcolor=colortag;
@@ -229,108 +237,154 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
 //                                cout<< "Y=" << Y << endl;
                                 //然后判断当前坐标
                                 //这里dst_x,h和dst_y中其中一个肯定是和灯管坐标一样的,但是命令控制微调和普通的调不一样的话
-                                int isArrive;
-                                isArrive=generate_command( G[current_node][next_node].dst_x,G[current_node][next_node].dst_y, G[current_node][next_node].str_x, G[current_node][next_node].str_y,X,Y);
-                                cout<<"generate command success"<<endl;
-                                if(isArrive==1) {
-                                    cout<<"arrive"<<endl;
-                                    check_num++;//检测到一次到达点就check_num+1;
-                                }
-			                 else{
-                                    check_num=0;
-			                        cout<<"current="<<current_node<<endl;
-			                        cout<<"next="<<next_node<<endl;
-                                }
-                             if(check_num>=3) {//当符合条件的定位次数大于3的时候则认为到达可以通过微调定位的转弯点了
-                                    int ncheck=*(++it);//判断下一个目标位置使用的灯管是不是和原来的一样的
-                                     it--;//it减回来
-                                    next_path = true;
+
+
+                                if(it!=(--route.end())) {//如果不是最后降落点
+                                    int isArrive;//判断是否到达转弯点
+                                    isArrive = generate_command(G[current_node][next_node].dst_x,
+                                                                G[current_node][next_node].dst_y,
+                                                                G[current_node][next_node].str_x,
+                                                                G[current_node][next_node].str_y, X, Y);
+                                    cout << "generate command success" << endl;
+
+                                    if (isArrive == 1) {
+                                        cout << "arrive" << endl;
+                                        check_num++;//检测到一次到达点就check_num+1;
+                                    } else {
+                                        check_num = 0;
+                                        cout << "current=" << current_node << endl;
+                                        cout << "next=" << next_node << endl;
+                                    }
+                                    if (check_num >= 3) {//当符合条件的定位次数大于3的时候则认为到达可以通过微调定位的转弯点了
+                                        int ncheck = *(++it);//判断下一个目标位置使用的灯管是不是和原来的一样的
+                                        it--;//it减回来
+                                        next_path = true;
 //                                    send_hover();
 //                                    sleep(20);
 //                                    send_land();
-                              //   if (/*it!=(--route.end())&&*/G[next_node][ncheck].color != G[current_node][next_node].color) {
-                                     cout << "next path =true" << endl;
-                                     //is_hover= true;
-                                 pthread_mutex_lock(&mutex_colortag);
-                                 colortag = 0;//换成红色微调
-                                 pthread_mutex_unlock(&mutex_colortag);
-                                     send_hover();
-                                     //sleep(30);
-                                     //send_land();
-                                     //is_hover=false;
-                                     sleep(10);
-                                     int turn_check_num = 0;
-                                     if (G[current_node][next_node].color == 1) {//如果当前灯管颜色是蓝色，那么先进入红色微调，蓝色应该不用调了
-                                         cout << "try to lock colortag" << endl;
+                                        if (/*it != (--route.end()) &&*/ G[next_node][ncheck].color !=
+                                                                     G[current_node][next_node].color) {//如果下一个节点不是终点，查看到下一个线路用的灯管是不是和当前灯管的颜色是否是相同的。如果不相同就微调
+                                            cout << "next path =true" << endl;
+                                            //is_hover= true;
+                                            pthread_mutex_lock(&mutex_colortag);
+                                            colortag = 0;//换成红色微调
+                                            pthread_mutex_unlock(&mutex_colortag);
+                                            send_hover();
+                                            //sleep(30);
+                                            //send_land();
+                                            //is_hover=false;
+                                            sleep(10);
+                                            int turn_check_num = 0;
+                                            if (G[current_node][next_node].color == 1) {//如果当前灯管颜色是蓝色，那么先进入红色微调，蓝色应该不用调了
+                                                cout << "try to lock colortag" << endl;
 
+                                                pthread_mutex_lock(&mutex_colortag);
+                                                colortag = 2;//换成红色微调
+                                                pthread_mutex_unlock(&mutex_colortag);
+                                                while (turn_check_num < 5) {
+                                                    if (abs(pix_y - 270) < 20) {
+                                                        turn_check_num++;
+                                                    } else turn_check_num = 0;
 
-                                         pthread_mutex_lock(&mutex_colortag);
-                                         colortag = 2;//换成红色微调
-                                         pthread_mutex_unlock(&mutex_colortag);
-                                         while (turn_check_num < 5) {
-                                             if (abs(pix_y - 270) < 20) {
-                                                 turn_check_num++;
-                                             } else turn_check_num = 0;
-                                             usleep(1000 * 1000);//每一秒检查一次
-                                         }
-                                     } else if (G[current_node][next_node].color == 2) {
-                                         pthread_mutex_lock(&mutex_colortag);
-                                         colortag = 1;//换成蓝色微调
-                                         pthread_mutex_unlock(&mutex_colortag);
-                                         while (turn_check_num < 5) {
-                                             if (abs(pix_x - 320) < 20) {
-                                                 turn_check_num++;
-                                             } else turn_check_num = 0;
-                                             usleep(1000 * 1000);//每一秒检查一次
-                                         }
-                                     }
+                                                    if(G[next_node][ncheck].str_y<G[next_node][ncheck].dst_y) {//因为当前是红色灯管微调所以下一条路线肯定是往y方向运动的
+                                                        //如果出发节点的y小于目标节点的y那在微调的时候不能向左偏太多
+                                                        if (pix_x<100) {
+                                                            just_right();
+                                                            usleep(1000*2000);
+                                                            send_stop_cross();
+                                                        }
+                                                    }
+                                                    else  if(G[next_node][ncheck].str_y>G[next_node][ncheck].dst_y){
+                                                        //如果出发点的y大于目标节点的y那在微调的时候不能
+                                                        if(pix_x>540){
+                                                            just_left();
+                                                            usleep(1000*2000);
+                                                            send_stop_cross();
+                                                        }
+                                                    }
+                                                    usleep(1000 * 1000);//每一秒检查一次
+                                                }
+                                            } else if (G[current_node][next_node].color == 2) {
 
-                                     /* //坐标判断到达中心点,悬停
-                                      sleep(5);//停止五秒后开始调转弯点
-                                      pthread_mutex_lock(&mutex_colortag);
-                                       colortag=3;
-                                       pthread_mutex_unlock(&mutex_colortag);
-                                      while(1){
+                                                pthread_mutex_lock(&mutex_colortag);
+                                                colortag = 1;//换成蓝色微调
+                                                pthread_mutex_unlock(&mutex_colortag);
+                                                while (turn_check_num < 5) {
+                                                    if (abs(pix_x - 320) < 20) {//这里访问像素不锁应该没问题吧
+                                                        turn_check_num++;
+                                                    } else turn_check_num = 0;
+                                                    if(G[next_node][ncheck].str_x<G[next_node][ncheck].dst_x) {//因为当前是红色灯管微调所以下一条路线肯定是往y方向运动的
+                                                        //如果出发节点的x小于目标节点的x那在微调的时候不能向后太多
+                                                        if (pix_y<80) {
+                                                            just_forward();
+                                                            usleep(1000*2000);
+                                                            send_stop_front();
+                                                        }
+                                                    }
+                                                    else  if(G[next_node][ncheck].str_x>G[next_node][ncheck].dst_x){
+                                                        //如果出发点的x大于目标节点的x那在微调的时候不能向前太多
+                                                        if(pix_y>400){
+                                                            just_back();
+                                                            usleep(1000*2000);
+                                                            send_stop_front();
+                                                        }
+                                                    }
+                                                    usleep(1000 * 1000);//每一秒检查一次
+                                                }
+                                            }
 
-                                          cout<<"  adjusting "<<endl;
-                                          pthread_mutex_lock(&mutex_colortag);
-                                         // colortag=3;
-                                          cout<<"colortag="<<colortag;
-                                          pthread_mutex_unlock(&mutex_colortag);
+                                            /* //坐标判断到达中心点,悬停
+                                             sleep(5);//停止五秒后开始调转弯点
+                                             pthread_mutex_lock(&mutex_colortag);
+                                              colortag=3;
+                                              pthread_mutex_unlock(&mutex_colortag);
+                                             while(1){
 
-                                          if(abs(pix_x-320)<20&&abs(pix_y-240)<10){
-                                              turn_check_num++;
-                                              if(turn_check_num>5) {
-                                                  pthread_mutex_lock(&mutex_colortag);
-                                                  colortag = 0;
-                                                  pthread_mutex_unlock(&mutex_colortag);
-                                                  break;
-                                              }
-                                          }
-                                          else turn_check_num=0;
-                                          usleep(1000*500);
-                                      }*/
-                                     sleep(5);
-                                     check_num = 0;
-                                // }
-                             }
+                                                 cout<<"  adjusting "<<endl;
+                                                 pthread_mutex_lock(&mutex_colortag);
+                                                // colortag=3;
+                                                 cout<<"colortag="<<colortag;
+                                                 pthread_mutex_unlock(&mutex_colortag);
 
-                               /* if (G[current_node][next_node].dst_x == G[current_node][next_node].light_pos) {
-                                    if (abs(X - G[current_node][next_node].dst_x) > 10) {
-                                        //xæ¹åäžåŸ®è°åœä»€
+                                                 if(abs(pix_x-320)<20&&abs(pix_y-240)<10){
+                                                     turn_check_num++;
+                                                     if(turn_check_num>5) {
+                                                         pthread_mutex_lock(&mutex_colortag);
+                                                         colortag = 0;
+                                                         pthread_mutex_unlock(&mutex_colortag);
+                                                         break;
+                                                     }
+                                                 }
+                                                 else turn_check_num=0;
+                                                 usleep(1000*500);
+                                             }*/
+                                            //sleep(1);
+                                            check_num = 0;
+                                        }
+
                                     }
-                                    if (abs(Y - G[current_node][next_node].dst_y) > 10) {
-                                        //yæ¹åäžç§»åšåœä»€
-                                    }
-                                } else {
-                                    if (abs(X - G[current_node][next_node].dst_x) > 10) {
-                                        //xæ¹åäžç§»åšåœä»€
-                                    }
-                                    if (abs(Y - G[current_node][next_node].dst_y) > 10 {
-                                        // yæ¹åäžåŸ®è°åœä»€
-                                    }
-                                }*/
+                                }
+                                else if(it==(--route.end())){//如果是最后降落点
+                                    int isReady;
+                                    isReady=generate_command(G[current_node][next_node].dst_x,
+                                                             G[current_node][next_node].dst_y,
+                                                             G[current_node][next_node].str_x,
+                                                             G[current_node][next_node].str_y, X, Y);//移动到降落点的命令，暂时先用路径上的指令方式
 
+                                    if (isReady == 1) {
+                                        cout << "arrive" << endl;
+                                        check_num++;//检测到一次到达点就check_num+1;
+                                    } else {
+                                        check_num = 0;
+                                     //   cout << "current=" << current_node << endl;
+                                     //   cout << "next=" << next_node << endl;
+                                    }
+                                    if(check_num>=3){
+                                        next_path = true;
+                                        //sleep(1);
+                                        check_num = 0;
+                                    }
+                                }
                             }
                         }
                     }
@@ -776,4 +830,36 @@ void *raw_adjust(void* arg){
         }
     }
     fout.close();
+}
+
+
+void *uwb_command(void* arg){
+    //设置线程运行cpu
+    cpu_set_t m_mask;
+    CPU_ZERO(&m_mask);
+    CPU_SET(0,&m_mask);
+    if (pthread_setaffinity_np(pthread_self(),sizeof(m_mask),&m_mask)<0)
+    {
+        fprintf(stderr,"set thread affinity failed\n");
+    }
+
+
+    int len;//buf数组大小
+    int out=0 ;//用于判断output数组是否完成了
+    int ibx ;//uwb数据中基站的距离
+    int icy ;//uwb数据中信号的强度
+    int ret ;//用于uwb数据分类，F1是信标数据，1是第一个基站数据，0是第2,3,4....基站的数据，如果是-1就是没有解析出或者没收到数据
+    short x=0,y=0,z=0 ;//临时记录定位算法给出的x,y,z
+    char rcv_buf[200] ;
+    char mac[80] ;//基站mac地址
+    int check_num=0;//记录定位数据次数(加在一开始)
+    int start_check=0;//起飞后灯管位置正确的次数
+
+    while(1){
+
+
+    }
+
+
+
 }
