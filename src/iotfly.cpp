@@ -79,9 +79,12 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;//
 pthread_mutex_t mutex_serial = PTHREAD_MUTEX_INITIALIZER;//
 pthread_mutex_t mutex_send = PTHREAD_MUTEX_INITIALIZER;//
 pthread_mutex_t mutex_pix = PTHREAD_MUTEX_INITIALIZER ;//pix_x,pix_y和pix_buf的互斥量
+pthread_mutex_t mutex_pix_y = PTHREAD_MUTEX_INITIALIZER ;//pix_y的互斥量
 pthread_mutex_t mutex_colortag=PTHREAD_MUTEX_INITIALIZER;//蓝红灯光的互斥量，因为航向角只能用一个颜色的
 pthread_mutex_t mutex_light_thread=PTHREAD_MUTEX_INITIALIZER;//图像线程互斥量
 pthread_mutex_t mutex_theta=PTHREAD_MUTEX_INITIALIZER;
+
+
 
 //char send_buf[100]={0} ;//给无人机发送的数组
 //int send_len=0 ;

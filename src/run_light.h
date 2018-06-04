@@ -8,6 +8,8 @@
 extern pthread_mutex_t mutex_colortag;
 extern pthread_mutex_t mutex_pix;
 extern pthread_mutex_t mutex_theta;
+extern pthread_mutex_t mutex_pix_y;
+
 extern int pix_x;
 extern int pix_y;
 extern double theta;

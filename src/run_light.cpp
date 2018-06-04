@@ -71,8 +71,6 @@ void * red_light_thread(void * arg)
 		arg_T->theta = find_true_theta(dst, mthreshold, tophead, toptail, bottomhead, bottomtail, top, bottom);
 		arg_T->core = find_core(top, bottom, dst.cols, dst.rows);
 
-
-
 	//	cout << "done" << endl;
 		arg_T->tag=1;
 		pthread_mutex_unlock(&mutex);
@@ -312,16 +310,16 @@ void *run_light(void *arg) {
         double t = (double)getTickCount();
 		if (theta1 != err || theta2 != err) {
 			//colortag=1是蓝色2是红色在读的时候先锁住
-			chec_num++;
-
+		//	chec_num++;
 		//	cout<<"light thread try to lock colortag"<<endl;
 			pthread_mutex_lock(&mutex_colortag);
-
-			pthread_mutex_lock(&mutex_theta);
+		//	pthread_mutex_lock(&mutex_theta);
 			if (colortag == 1 && theta1 != err&&!(core.x>dst.cols)) {
 				if (theta1 > 5 && theta1 < 175) {
+                    pthread_mutex_lock(&mutex_theta);
 					theta=theta1;
-					//cout<<"theta hold"<<endl;
+                    pthread_mutex_unlock(&mutex_theta);
+				//	cout<<"blue_theta="<<theta<<endl;
 				}
 			/*if(chec_num>0){		
 				if(core.x>340&&core.x<640){
@@ -352,8 +350,10 @@ void *run_light(void *arg) {
 //colortag=2是红色
 			else if (colortag == 2 && theta2 != err && !(core2.x>dst.rows)) {
 				if (theta2 > 5 && theta2 < 175) {
+                    pthread_mutex_lock(&mutex_theta);
 					theta=(180-theta2);
-					cout<<"red_theta="<<(180-theta2)<<endl;
+                    pthread_mutex_unlock(&mutex_theta);
+					//cout<<"red_theta="<<theta<<endl;
 					}
 			/*if(chec_num>0){
 				if(core2.x>240&&core2.x<480){
@@ -376,55 +376,20 @@ void *run_light(void *arg) {
 				chec_num=0;
                             }*/
 			}
-			else if(colortag==3 && theta1!=err && theta2!=err){//转角处任意theta都能赋值
+/*			else if(colortag==3 && theta1!=err && theta2!=err){//转角处任意theta都能赋值
 				if (theta1 > 5 && theta1 < 175) {
 					theta=theta1;
 				}
 				else if (theta2 > 5 && theta2 < 175) {
 					theta=(180-theta2);
 				}
-
-					
-				/*if(core2.x>250&&core2.x<480){
-					send_go_back();
-                                        cout<<"go_back_c"<<endl;		
-				}
-				else if(core2.x>0&&core2.x<230){
-					send_go_forward();
-					cout<<"go_front_c"<<endl;
-				
-				}
-			             // usleep(1000*50);
-				else {
-					send_stop_front();
-					cout<<"stop"<<endl;	
-				}
-
-				if(core.x>340&&core.x<640){
-					send_go_left();
-                                        cout<<"go_left_c"<<endl;					
-				}
-				
-				
-				else if(core.x>0&&core.x<300){
-					send_go_right();
-					cout<<"go_right_c"<<endl;
-				}
-			             // usleep(1000*50);
-				else {
-					send_stop_cross();
-					cout<<"stop"<<endl;	
-				}
-				usleep(1000*500);
-				send_stop_cross();
-				send_stop_front();*/
-			}
+			}*/
 			else if(colortag==0){//xuanting
 				send_hover();
 			}
 			pthread_mutex_unlock(&mutex_colortag);
 		//	cout<<"unlock colortag"<<endl;
-			pthread_mutex_unlock(&mutex_theta);
+		//	pthread_mutex_unlock(&mutex_theta);
             t = ((double)getTickCount() - t) / getTickFrequency();
 		}
 

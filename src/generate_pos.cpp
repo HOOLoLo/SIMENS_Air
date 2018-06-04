@@ -33,8 +33,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
     char rcv_buf[200] ;
     char mac[80] ;//基站mac地址
     int check_num=0;//记录定位数据次数(加在一开始)
-
-
+    int start_check=0;//起飞后灯管位置正确的次数
 
     while(open_serial(com)==-1){//打开uwb串口
         sleep(10) ;
@@ -50,7 +49,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
     while(/*监听tcp接受路线任务*/t) {
         //if(收到起点,终点 start,dst){
             int start=0;
-            int dst=1;
+            int dst=3;
        // }
         if(generate_route(start,dst)&&!route.empty()) {
             cout<<"generate route success"<<endl;
@@ -86,7 +85,49 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
             pthread_create(&adjust_theta_id,NULL,adjustment_theta,NULL);
 	        sleep(10);
             pthread_create(&adjust_thread_id,NULL,adjustment,NULL);//调整线程
-	        sleep(20);
+	        sleep(5);
+	        while (1){
+	            int nowcolor=0;//起飞的时候的灯管颜色
+                pthread_mutex_lock(&mutex_colortag);
+                nowcolor=colortag;
+                pthread_mutex_unlock(&mutex_colortag);
+
+                if(nowcolor==1) {//如果起飞的时候是蓝色
+                    pthread_mutex_lock(&mutex_pix);
+                    if(abs(pix_x - 320) < 20){
+                        start_check++;
+                    }
+                    else{
+                        start_check=0;
+                    }
+                    pthread_mutex_unlock(&mutex_pix);
+                    if(start_check>10){
+                        start_check=0;
+                        break;
+                    }
+                    else{
+                        usleep(1000*100);
+                    }
+                }
+                if(nowcolor==2){
+                    pthread_mutex_lock(&mutex_pix);
+                    if(abs(pix_y - 270) < 20){
+                        start_check++;
+                    }
+                    else{
+                        start_check=0;
+                    }
+                    pthread_mutex_unlock(&mutex_pix);
+                    if(start_check>10){
+                        start_check=0;
+                        break;
+                    }
+                    else{
+                        usleep(1000*100);
+                    }
+                }
+
+	        }
 	    //time_tag=1;
 //	 send_go_forward();
 	// usleep(1000*2000);
@@ -111,6 +152,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
 
 
                 while (!next_path) {
+
                     len = 100;
                     usleep(10);
                     memset(rcv_buf, '\0', len);
@@ -123,9 +165,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                     rcv_buf[len] = '\0';
                     cout<<rcv_buf<<endl;
                     if (len > 0 && len < 80) {
-
                         memset(mac, '\0', 50);
-
                         ret = get_info(rcv_buf, len, mac, &ibx, &icy);
                         if (ret == -1) {
                             cout<<"read info failed"<<endl;
@@ -160,10 +200,8 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                         }
 			                //cout<<"pix_x="<<pix_x<<"pix_y="<<pix_y<<endl;
                         if(set_pos_success==true) {//如果uwb数据定位完成，启用灯管定位
-
 			                cout<<"color ="<<G[current_node][next_node].color<<endl;
 			             //   cout<<"pix_x="<<pix_x<<"pix_y="<<pix_y<<endl;
-
                             //先对像素坐标进行判断一下有没有出错
                             if((pix_x>=10&&pix_x<=630)||(pix_y>=10&&pix_y<=470)) {
                                 //判断灯管修改坐标值
@@ -210,19 +248,21 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
 //                                    send_hover();
 //                                    sleep(20);
 //                                    send_land();
-
                               //   if (/*it!=(--route.end())&&*/G[next_node][ncheck].color != G[current_node][next_node].color) {
-
                                      cout << "next path =true" << endl;
-                                     is_hover= true;
+                                     //is_hover= true;
+                                 pthread_mutex_lock(&mutex_colortag);
+                                 colortag = 0;//换成红色微调
+                                 pthread_mutex_unlock(&mutex_colortag);
                                      send_hover();
-                                     sleep(20);
+                                     //sleep(30);
                                      //send_land();
-                                     is_hover=false;
-
+                                     //is_hover=false;
+                                     sleep(10);
                                      int turn_check_num = 0;
                                      if (G[current_node][next_node].color == 1) {//如果当前灯管颜色是蓝色，那么先进入红色微调，蓝色应该不用调了
                                          cout << "try to lock colortag" << endl;
+
 
                                          pthread_mutex_lock(&mutex_colortag);
                                          colortag = 2;//换成红色微调
@@ -320,6 +360,7 @@ void *adjustment(void* arg){
     ofstream fout;
     fout.open("log.txt",ios::out|ios::app);//日志
 
+    //设置线程运行cpu
     cpu_set_t m_mask;
     CPU_ZERO(&m_mask);
     CPU_SET(3,&m_mask);
@@ -327,28 +368,30 @@ void *adjustment(void* arg){
     {
         fprintf(stderr,"set thread affinity failed\n");
     }
+    /*int tm;//记录发送指令的间隔时间次数，时间间隔要通过测试确定
+	int tm_sleep;//休停时间*/
 
-
-    int tm;//记录发送指令的间隔时间次数，时间间隔要通过测试确定
-	int tm_sleep;//休停时间
-	int ad_pix_x,ad_pix_y;//临时记录像素值
+    int ad_pix_x,ad_pix_y;//临时记录像素值
 	int color;//临时记录颜色
-    //double t1 = (double)getTickCount();
+    /*    //double t1 = (double)getTickCount();
+    //time_t timep;
+    //time (&timep);
+    //fout<<current<<endl;*/
 
-//    time_t timep;
-//    time (&timep);
-//
-//    fout<<current<<endl;
+    int adj_right_num=0;
+    int adj_left_num=0;//记录调整的次数如果次数大于20就先停一会再调整
+    int adj_front_num=0;
+    int adj_back_num=0;
 
-	while(1){
+    while(1){
 	    bool do_adj=false;
         pthread_mutex_lock(&mutex_light_thread);
-        do_adj=light_thread;
+        do_adj=light_thread;//读取灯光是否运行标记位
         pthread_mutex_unlock(&mutex_light_thread);
         if(do_adj==false){
             break;
         }
-       // double t = (double)getTickCount();
+       /* double t = (double)getTickCount();
         //t1 = ((double)getTickCount() - t1) / getTickFrequency();
 /*	//if(time_tag==0){//悬停
 //	tm=10;//每10毫秒读取一此pix
@@ -362,34 +405,50 @@ void *adjustment(void* arg){
 //	else{
 //	tm=20;
 //	cout<<"time_tag error"<<endl;
-//	}*/
-       // cout<<"t1="<<t1<<endl;
+//	}
+       // cout<<"t1="<<t1<<endl;*/
+        //读取colortag标记位
+        pthread_mutex_lock(&mutex_colortag);
+        color=colortag;
+        pthread_mutex_unlock(&mutex_colortag);
 
-	pthread_mutex_lock(&mutex_pix);
-	ad_pix_x=pix_x;
-	ad_pix_y=pix_y;
-	pthread_mutex_unlock(&mutex_pix);
-	cout<<"pix_x="<<ad_pix_x<<"pix_y"<<ad_pix_y<<endl;
-//	fout<<"pix_x="<<ad_pix_x<<"pix_y"<<ad_pix_y<<endl;
-/*//	if(ad_pix_x==0&&ad_pix_y==0){
+
+
+        //读取像素值
+        pthread_mutex_lock(&mutex_pix);
+	    ad_pix_x=pix_x;
+	    ad_pix_y=pix_y;
+	    pthread_mutex_unlock(&mutex_pix);
+	    cout<<"pix_x="<<ad_pix_x<<"pix_y"<<ad_pix_y<<endl;
+        //fout<<"pix_x="<<ad_pix_x<<"pix_y"<<ad_pix_y<<endl;
+        /*//	if(ad_pix_x==0&&ad_pix_y==0){
 //
 //		usleep(1000*300);
 //		continue;
 //	}*/
-    pthread_mutex_lock(&mutex_colortag);
-    color=colortag;
-	pthread_mutex_unlock(&mutex_colortag);
-	//t = ((double)getTickCount() - t) / getTickFrequency();
-        cout<<"color="<<color<<endl;
+
+
+	    //t = ((double)getTickCount() - t) / getTickFrequency();
+   //     cout<<"color="<<color<<endl;
         double t = (double)getTickCount();
 
-	if(color==1&&!is_hover)//蓝色
+
+	if(color==1/*&&!is_hover*/)//蓝色
 	{
-       // double t = (double)getTickCount();
+        if(adj_left_num>=20||adj_right_num>=20){
+            send_stop_cross();
+            usleep(1000*500);
+            adj_left_num=0;
+            adj_right_num=0;
+            continue;
+        }
+        // double t = (double)getTickCount();
 		if(ad_pix_x>340&&ad_pix_x<640){
-		send_go_left(ad_pix_x,ad_pix_y);
-		cout<<"go_left"<<endl;
-//		fout<<"go_left"<<endl;
+		    send_go_left(ad_pix_x,ad_pix_y);
+		    adj_left_num++;
+		    adj_right_num=0;
+		    cout<<"go_left"<<endl;
+//	    	fout<<"go_left"<<endl;
 	/*	//while(tm--){//每次停10毫秒就检测一次图像结果
 		//usleep(1000*tm);
 //		pthread_mutex_lock(&mutex_pix);
@@ -404,11 +463,13 @@ void *adjustment(void* arg){
 		//send_stop_cross();
 		//usleep(1000*tm_sleep);
 		//cout<<"and stop"<<endl;*/
-		}
+		    }
 		else if(ad_pix_x>0&&ad_pix_x<300){
-		send_go_right(ad_pix_x,ad_pix_y);
-//		cout<<"go_right"<<endl;
-//		fout<<"go_right"<<endl;
+		    send_go_right(ad_pix_x,ad_pix_y);
+		    adj_right_num++;
+		    adj_left_num=0;
+		    cout<<"go_right"<<endl;
+//		    fout<<"go_right"<<endl;
 /*//		while(tm--){
 		//usleep(1000*tm);
 //		pthread_mutex_lock(&mutex_pix);
@@ -424,48 +485,66 @@ void *adjustment(void* arg){
 		//send_stop_cross();
 		//usleep(1000*tm_sleep);
 		//cout<<"and stop"<<endl;*/
-		}
-
+		    }
 		// usleep(1000*50);
-		else {
-		send_stop_cross();
-		cout<<"stop_cross"<<endl;
-		usleep(1000*500);
+		else {//在中间就停止
+		    send_stop_cross();
+		    adj_left_num=0;
+		    adj_right_num=0;
+		    cout<<"stop_cross"<<endl;
+		    usleep(1000*500);
 		}
         t = ((double)getTickCount() - t) / getTickFrequency();
         //cout << "times passed in seconds: " << t << endl;
-       // t1 = (double)getTickCount();
+         // t1 = (double)getTickCount();
 	}
-	else if(color==2&&!is_hover)//紅色
+
+	else if(color==2/*&&!is_hover*/)//紅色
 	{
-	if(ad_pix_y>290&&ad_pix_y<480){
-		send_go_back();
-		cout<<"go_back"<<endl;
-//        fout<<"go_back"<<endl;
-	}
-	else if(ad_pix_y>0&&ad_pix_y<250){
-		send_go_forward();
-		cout<<"go_forward"<<endl;
-//		cout<<"go_front"<<endl;
-//        fout<<"go_front"<<endl;
-	}
 
-	else {
-	send_stop_front();
-	cout<<"stop"<<endl;
-	usleep(1000*500);
+	    if(adj_front_num>=20||adj_back_num>=20){
+            send_stop_front();
+            usleep(1000*500);
+            adj_front_num=0;
+            adj_back_num=0;
+            continue;
+	    }
+	    if(ad_pix_y>290&&ad_pix_y<480){
+		    send_go_back();
+		    adj_back_num++;
+		    adj_front_num=0;
+		    cout<<"go_back"<<endl;
+//          fout<<"go_back"<<endl;
+	    }
+	    else if(ad_pix_y>0&&ad_pix_y<250){
+    		send_go_forward();
+    		adj_front_num++;
+    		adj_back_num=0;
+	    	cout<<"go_forward"<<endl;
+//		    cout<<"go_front"<<endl;
+//          fout<<"go_front"<<endl;
+	    }
+	    else {
+	        adj_back_num=0;
+	        adj_front_num=0;
+	        send_stop_front();
+	        cout<<"stop"<<endl;
+	        usleep(1000*500);
+	    }
 	}
-	}
-
-	else if(is_hover){
-	    send_hover();
-	    //sleep(10);
-	}
+//	else if(is_hover){
+//	    //send_hover();
+//	    sleep(1);
+//	}
 	else if(color==3){
 	    cout<<"send_adjust"<<endl;
 	    send_adj(ad_pix_x,ad_pix_y);//转弯点两种颜色微调
 	}
 	else if(color==0){//转弯后调整结束后悬停一段时间
+	    adj_front_num=0;
+	    adj_back_num=0;
+	    adj_left_num=0;
+	    adj_right_num=0;
 	    send_hover();
 	}
 	else{
@@ -492,9 +571,209 @@ void *adjustment_theta(void* arg){
         pthread_mutex_unlock(&mutex_theta);
        // cout<<"theta="<<ad_theta<<endl;
         if (ad_theta > 5 && ad_theta < 175) {
+            cout<<"its theta hold"<<endl;
             theta_hold(theta);
         } else {
             send_stop_rotation();
         }
     }
+}
+
+
+void *pitch_adjust(void *arg){//前后移动的微调
+        //飞机微调线程函数，通过图像处理得到的结果来进行飞机的微调
+        ofstream fout;
+        fout.open("log_cross.txt",ios::out|ios::app);//日志
+
+        //设置线程运行cpu
+        cpu_set_t m_mask;
+        CPU_ZERO(&m_mask);
+        CPU_SET(3,&m_mask);
+        if (pthread_setaffinity_np(pthread_self(),sizeof(m_mask),&m_mask)<0)
+        {
+            fprintf(stderr,"set thread affinity failed\n");
+        }
+        /*int tm;//记录发送指令的间隔时间次数，时间间隔要通过测试确定
+        int tm_sleep;//休停时间*/
+        int ad_pix_y;//临时记录y像素值
+        int color;//临时记录颜色
+        /*    //double t1 = (double)getTickCount();
+        //time_t timep;
+        //time (&timep);
+        //fout<<current<<endl;*/
+        while(1){//循环调整
+            bool do_adj=false;
+            pthread_mutex_lock(&mutex_light_thread);
+            do_adj=light_thread;//读取灯光是否运行标记位
+            pthread_mutex_unlock(&mutex_light_thread);
+            if(do_adj==false){//如果灯光不运行跳出循环
+                break;
+            }
+            /* double t = (double)getTickCount();
+             //t1 = ((double)getTickCount() - t1) / getTickFrequency();
+            // cout<<"t1="<<t1<<endl;*/
+            //读取像素值只需要读
+            pthread_mutex_lock(&mutex_pix_y);
+            ad_pix_y=pix_y;
+            pthread_mutex_unlock(&mutex_pix_y);
+            cout<<"pix_y"<<ad_pix_y<<endl;
+            //读取colortag标记位
+            pthread_mutex_lock(&mutex_colortag);
+            color=colortag;
+            pthread_mutex_unlock(&mutex_colortag);
+            //t = ((double)getTickCount() - t) / getTickFrequency();
+            cout<<"color="<<color<<endl;
+            double t = (double)getTickCount();
+            if(color==2||color==3)//colortag=2或者colortag=3（两个一起微调）
+            {
+                if(ad_pix_y>290&&ad_pix_y<480){
+                    send_go_back();
+                    cout<<"go_back"<<endl;
+                }
+                else if(ad_pix_y>0&&ad_pix_y<250){
+                    send_go_forward();
+                    cout<<"go_forward"<<endl;
+                }
+                else {
+                    send_stop_front();
+                    cout<<"stop"<<endl;
+                    usleep(1000*500);
+                }
+            }
+            else if(color==0){//color=0就悬停
+                send_hover();
+            }
+            else{
+                send_land();//意外降落；
+            }
+        }
+        fout.close();
+    }
+
+//飞机微调线程函数，通过图像处理得到的结果来进行飞机的微调
+void *raw_adjust(void* arg){
+    ofstream fout;
+    fout.open("log.txt",ios::out|ios::app);//日志
+
+    //设置线程运行cpu
+    cpu_set_t m_mask;
+    CPU_ZERO(&m_mask);
+    CPU_SET(3,&m_mask);
+    if (pthread_setaffinity_np(pthread_self(),sizeof(m_mask),&m_mask)<0)
+    {
+        fprintf(stderr,"set thread affinity failed\n");
+    }
+
+
+    int ad_pix_x,ad_pix_y;//临时记录像素值
+    int color;//临时记录颜色
+
+
+
+    while(1){
+        bool do_adj=false;
+        pthread_mutex_lock(&mutex_light_thread);
+        do_adj=light_thread;//读取灯光是否运行标记位
+        pthread_mutex_unlock(&mutex_light_thread);
+        if(do_adj==false){
+            break;
+        }
+
+
+        //读取colortag标记位
+        pthread_mutex_lock(&mutex_colortag);
+        color=colortag;
+        pthread_mutex_unlock(&mutex_colortag);
+        //t = ((double)getTickCount() - t) / getTickFrequency();
+        cout<<"color="<<color<<endl;
+        double t = (double)getTickCount();
+
+        if(color==1&&!is_hover)//蓝色
+        {
+            // double t = (double)getTickCount();
+            if(ad_pix_x>340&&ad_pix_x<640){
+                send_go_left(ad_pix_x,ad_pix_y);
+                cout<<"go_left"<<endl;
+//		fout<<"go_left"<<endl;
+                /*	//while(tm--){//每次停10毫秒就检测一次图像结果
+                    //usleep(1000*tm);
+            //		pthread_mutex_lock(&mutex_pix);
+            //        ad_pix_x=pix_x;
+            //		ad_pix_y=pix_y;
+            //		pthread_mutex_unlock(&mutex_pix);
+
+            //		if(ad_pix_x>300&&ad_pix_x<340)break;
+            //		}
+                    //send_go_right();
+                    //usleep(1000*25);
+                    //send_stop_cross();
+                    //usleep(1000*tm_sleep);
+                    //cout<<"and stop"<<endl;*/
+            }
+            else if(ad_pix_x>0&&ad_pix_x<300){
+                send_go_right(ad_pix_x,ad_pix_y);
+                cout<<"go_right"<<endl;
+//		fout<<"go_right"<<endl;
+/*//		while(tm--){
+		//usleep(1000*tm);
+//		pthread_mutex_lock(&mutex_pix);
+//	        ad_pix_x=pix_x;
+//		ad_pix_y=pix_y;
+//		pix_x=0;
+//		pix_y=0;
+//		pthread_mutex_unlock(&mutex_pix);
+//		if(ad_pix_x>300&&ad_pix_x<340)break;
+//		}
+		//send_go_left();
+		//usleep(1000*25);
+		//send_stop_cross();
+		//usleep(1000*tm_sleep);
+		//cout<<"and stop"<<endl;*/
+            }
+                // usleep(1000*50);
+            else {//在中间就停止
+                send_stop_cross();
+                cout<<"stop_cross"<<endl;
+                usleep(1000*500);
+            }
+            t = ((double)getTickCount() - t) / getTickFrequency();
+            //cout << "times passed in seconds: " << t << endl;
+            // t1 = (double)getTickCount();
+        }
+
+        else if(color==2&&!is_hover)//紅色
+        {
+            if(ad_pix_y>290&&ad_pix_y<480){
+                send_go_back();
+                cout<<"go_back"<<endl;
+//      fout<<"go_back"<<endl;
+            }
+            else if(ad_pix_y>0&&ad_pix_y<250){
+                send_go_forward();
+                cout<<"go_forward"<<endl;
+//		cout<<"go_front"<<endl;
+//        fout<<"go_front"<<endl;
+            }
+            else {
+                send_stop_front();
+                cout<<"stop"<<endl;
+                usleep(1000*500);
+            }
+        }
+        else if(is_hover){
+            send_hover();
+            //sleep(10);
+        }
+        else if(color==3){
+            cout<<"send_adjust"<<endl;
+            send_adj(ad_pix_x,ad_pix_y);//转弯点两种颜色微调
+        }
+        else if(color==0){//转弯后调整结束后悬停一段时间
+            send_hover();
+        }
+        else{
+            send_land();//意外降落；
+        }
+    }
+    fout.close();
 }

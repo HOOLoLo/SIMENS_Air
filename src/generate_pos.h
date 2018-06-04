@@ -15,6 +15,8 @@ extern int Y;//最终坐标
 extern pthread_mutex_t mutex_pix;
 extern pthread_mutex_t mutex_colortag;
 extern pthread_mutex_t mutex_theta;
+extern pthread_mutex_t mutex_pix_y;
+
 
 extern std::list<int> route;
 

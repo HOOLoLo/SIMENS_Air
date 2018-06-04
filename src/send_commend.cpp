@@ -106,26 +106,29 @@ void send_go_back(){
 //维持角度的函数
 void theta_hold(double theta) {
     // uart_write(command_serial_fd,stop_rotation,5);
-    //cout<<"theta="<<theta<<endl;
+    cout<<"theta="<<theta<<endl;
     double deviation=(theta-90);//
     
     if(abs(deviation)>=30){//当角度大于30度的时候就降落
 	cout<<"deviation="<<deviation<<endl;
 	cout<<"theta="<<theta<<endl;
+	uart_write(command_serial_fd,stop_rotation,5);
 	uart_write(command_serial_fd,land,5);
 	}
 
     else if(deviation>3) {//当角度大于93向左调整
+        cout<<"turn_left"<<endl;
         uart_write(command_serial_fd, turn_left, 5);
 	    usleep(1000*20);//时间间隔20ms
         uart_write(command_serial_fd,stop_rotation,5);
-        //	cout<<"theta="<<theta<<endl;
+        	cout<<"turn_left_theta="<<theta<<endl;
     }
     else if(deviation<-3){//当角度小于87向右调整
+        cout<<"turn_right"<<endl;
         uart_write(command_serial_fd,turn_right,5);
         usleep(1000*20);
         uart_write(command_serial_fd,stop_rotation,5);
-        //	cout<<"theta="<<theta<<endl;
+        	cout<<"turn_right_theta="<<theta<<endl;
         }
         uart_write(command_serial_fd, stop_rotation, 5);
         usleep(1000*15);
@@ -140,6 +143,11 @@ void send_stop_rotation() {
 //发送降落指令
 void send_land(){
     cout<<"send_lend"<<endl;
+
+    /*pthread_mutex_lock(&mutex_colortag);
+    colortag=0;
+    pthread_mutex_unlock(&mutex_colortag);
+    *///关闭其他方向的指令控制
     uart_write(command_serial_fd,land,5);
     sleep(60);
     uart_write(command_serial_fd,switch_hover,5);//降落60ms之后切换悬停模式
@@ -149,7 +157,7 @@ void send_land(){
 
 void send_go_left(int pix_x,int pix_y){
     short div=(short)(pix_x-320);//div左偏移像素
-    short speed=0x05BE;//设置速度
+    short speed=0x05B4;//设置速度
     //if(div<=160){
     //    speed+=div/4;
     //  }
