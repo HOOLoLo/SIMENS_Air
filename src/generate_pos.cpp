@@ -25,7 +25,7 @@ bool is_hover=false;
 void command_thread(){//这个函数是整个程序的核心,完成了，接受uwb数据，生成位置，判断位置，设置分组，发送命令所有任务
     char *com = "/dev/ttyUSB0" ;//读取uwb设备串口名
     char *uart1="/dev/ttyAMA1";//向无人机发送命令串口
-    int uart1_para=9600;
+    int uart1_para=9600; // 定义
 
     int len;//buf数组大小
     int out=0 ;//用于判断output数组是否完成了
