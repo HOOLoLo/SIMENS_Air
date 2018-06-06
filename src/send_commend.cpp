@@ -106,29 +106,29 @@ void send_go_back(){
 //维持角度的函数
 void theta_hold(double theta) {
     // uart_write(command_serial_fd,stop_rotation,5);
-    cout<<"theta="<<theta<<endl;
+   // cout<<"theta="<<theta<<endl;
     double deviation=(theta-90);//
     
     if(abs(deviation)>=30){//当角度大于30度的时候就降落
-	cout<<"deviation="<<deviation<<endl;
-	cout<<"theta="<<theta<<endl;
+	//cout<<"deviation="<<deviation<<endl;
+	//cout<<"theta="<<theta<<endl;
 	uart_write(command_serial_fd,stop_rotation,5);
 	uart_write(command_serial_fd,land,5);
 	}
 
     else if(deviation>3) {//当角度大于93向左调整
-        cout<<"turn_left"<<endl;
+       // cout<<"turn_left"<<endl;
         uart_write(command_serial_fd, turn_left, 5);
 	    usleep(1000*20);//时间间隔20ms
         uart_write(command_serial_fd,stop_rotation,5);
-        	cout<<"turn_left_theta="<<theta<<endl;
+       // 	cout<<"turn_left_theta="<<theta<<endl;
     }
     else if(deviation<-3){//当角度小于87向右调整
-        cout<<"turn_right"<<endl;
+    //    cout<<"turn_right"<<endl;
         uart_write(command_serial_fd,turn_right,5);
         usleep(1000*20);
         uart_write(command_serial_fd,stop_rotation,5);
-        	cout<<"turn_right_theta="<<theta<<endl;
+     //   	cout<<"turn_right_theta="<<theta<<endl;
         }
         uart_write(command_serial_fd, stop_rotation, 5);
         usleep(1000*15);
@@ -423,10 +423,10 @@ void send_hover() {
 
 
 int go_to_land(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y){//去降落的指令函数
-    short speed_forward = 0x05D2;//速度都设为10
-    short speed_back = 0x05E6;//10
-    short speed_left = 0x05C8;//左速度20
-    short speed_right = 0x05E6;//10
+    short speed_forward = 0x05C8;//速度都设为20
+    short speed_back = 0x05F0;//20
+    short speed_left = 0x05BE;//左速度30
+    short speed_right = 0x05F0;//20
 
 
     go_forward_road[3] = (speed_forward & 0x00ff);
@@ -454,23 +454,24 @@ int go_to_land(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y){//�
             else if(cur_Y-dst_y<-20){
                 uart_write(command_serial_fd, go_right_road, 5);
             }
-            else return 1;//如果出发点y=目标点y就认为到达
+
     }
 
     else if (dst_y == str_y) {//x方向飞行
 
         if (abs(cur_X - dst_x) <= 20) {//只要小于dst_x+20就认为到达
-            uart_write(command_serial_fd,stop_cross,5);
+            uart_write(command_serial_fd,stop_forward,5);
             return 1;
         }
         else if(cur_X-dst_x>20){
-            uart_write(command_serial_fd, go_left_road, 5);
+            uart_write(command_serial_fd, go_back_road, 5);//向后
         }
         else if(cur_X-dst_x<-20){
-            uart_write(command_serial_fd, go_right_road, 5);
+            uart_write(command_serial_fd, go_forward_road, 5);//向前
         }
-        else return 1;//如果出发点y=目标点y就认为到达
+
     }
+
     return 0;
 
 }
@@ -478,7 +479,7 @@ int go_to_land(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y){//�
 
 void just_left(){//只向左
     char left[5]={'\xFF','\x02','\x00','\xBE','\x05'};//1470
-
+    uart_write(command_serial_fd,left,5);
 }
 
 void just_right(){//只向右

@@ -90,7 +90,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
             pthread_create(&run_light_id,NULL,run_light,NULL);//起飞结束后启动图像调整线程
        	    cout<<"create light_thread success"<<endl;
             pthread_create(&adjust_theta_id,NULL,adjustment_theta,NULL);
-	        sleep(10);
+	        //sleep(10);
             pthread_create(&adjust_thread_id,NULL,adjustment,NULL);//调整线程
 	        sleep(5);
 
@@ -267,7 +267,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                             cout << "next path =true" << endl;
                                             //is_hover= true;
                                             pthread_mutex_lock(&mutex_colortag);
-                                            colortag = 0;//换成红色微调
+                                            colortag = 0;
                                             pthread_mutex_unlock(&mutex_colortag);
                                             send_hover();
                                             //sleep(30);
@@ -361,12 +361,11 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                             //sleep(1);
                                             check_num = 0;
                                         }
-
                                     }
                                 }
                                 else if(it==(--route.end())){//如果是最后降落点
                                     int isReady;
-                                    isReady=generate_command(G[current_node][next_node].dst_x,
+                                    isReady=go_to_land(G[current_node][next_node].dst_x,
                                                              G[current_node][next_node].dst_y,
                                                              G[current_node][next_node].str_x,
                                                              G[current_node][next_node].str_y, X, Y);//移动到降落点的命令，暂时先用路径上的指令方式
@@ -379,9 +378,9 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
                                      //   cout << "current=" << current_node << endl;
                                      //   cout << "next=" << next_node << endl;
                                     }
-                                    if(check_num>=3){
+                                    if(check_num>=5){
                                         next_path = true;
-                                        //sleep(1);
+                                        sleep(5);
                                         check_num = 0;
                                     }
                                 }
@@ -413,7 +412,7 @@ void command_thread(){//这个函数是整个程序的核心,完成了，接受u
 void *adjustment(void* arg){
     ofstream fout;
     fout.open("log.txt",ios::out|ios::app);//日志
-
+    int threshold=100;
     //设置线程运行cpu
     cpu_set_t m_mask;
     CPU_ZERO(&m_mask);
@@ -489,7 +488,7 @@ void *adjustment(void* arg){
 
 	if(color==1/*&&!is_hover*/)//蓝色
 	{
-        if(adj_left_num>=20||adj_right_num>=20){
+        if((adj_left_num>=30||adj_right_num>=30)&&(abs(pix_x-320)<threshold)){
             send_stop_cross();
             usleep(1000*500);
             adj_left_num=0;
@@ -503,20 +502,7 @@ void *adjustment(void* arg){
 		    adj_right_num=0;
 		    cout<<"go_left"<<endl;
 //	    	fout<<"go_left"<<endl;
-	/*	//while(tm--){//每次停10毫秒就检测一次图像结果
-		//usleep(1000*tm);
-//		pthread_mutex_lock(&mutex_pix);
-//        ad_pix_x=pix_x;
-//		ad_pix_y=pix_y;
-//		pthread_mutex_unlock(&mutex_pix);
 
-//		if(ad_pix_x>300&&ad_pix_x<340)break;
-//		}
-		//send_go_right();
-		//usleep(1000*25);
-		//send_stop_cross();
-		//usleep(1000*tm_sleep);
-		//cout<<"and stop"<<endl;*/
 		    }
 		else if(ad_pix_x>0&&ad_pix_x<300){
 		    send_go_right(ad_pix_x,ad_pix_y);
@@ -524,23 +510,9 @@ void *adjustment(void* arg){
 		    adj_left_num=0;
 		    cout<<"go_right"<<endl;
 //		    fout<<"go_right"<<endl;
-/*//		while(tm--){
-		//usleep(1000*tm);
-//		pthread_mutex_lock(&mutex_pix);
-//	        ad_pix_x=pix_x;
-//		ad_pix_y=pix_y;
-//		pix_x=0;
-//		pix_y=0;
-//		pthread_mutex_unlock(&mutex_pix);
-//		if(ad_pix_x>300&&ad_pix_x<340)break;
-//		}
-		//send_go_left();
-		//usleep(1000*25);
-		//send_stop_cross();
-		//usleep(1000*tm_sleep);
-		//cout<<"and stop"<<endl;*/
+
 		    }
-		// usleep(1000*50);
+
 		else {//在中间就停止
 		    send_stop_cross();
 		    adj_left_num=0;
@@ -556,7 +528,7 @@ void *adjustment(void* arg){
 	else if(color==2/*&&!is_hover*/)//紅色
 	{
 
-	    if(adj_front_num>=20||adj_back_num>=20){
+	    if((adj_front_num>=30||adj_back_num>=30)&&(abs(ad_pix_y-270)<threshold)){
             send_stop_front();
             usleep(1000*500);
             adj_front_num=0;
@@ -625,7 +597,7 @@ void *adjustment_theta(void* arg){
         pthread_mutex_unlock(&mutex_theta);
        // cout<<"theta="<<ad_theta<<endl;
         if (ad_theta > 5 && ad_theta < 175) {
-            cout<<"its theta hold"<<endl;
+           // cout<<"its theta hold"<<endl;
             theta_hold(theta);
         } else {
             send_stop_rotation();

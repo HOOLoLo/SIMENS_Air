@@ -61,4 +61,5 @@ void just_right();
 void just_forward();
 void just_back();
 
+int go_to_land(int dst_x,int dst_y,int str_x,int str_y,int cur_X,int cur_Y);
 #endif //CIOTFLY_SEND_COMMEND_H
